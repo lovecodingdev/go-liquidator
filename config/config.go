@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"encoding/json"
+	"time"
+
+	. "go-liquidator/global"
 )
 
 var (
-	OBLIGATION_LEN			= 1300
+	// OBLIGATION_LEN			= 1300
 	RESERVE_LEN					= 619
 	LENDING_MARKET_LEN	= 290
 	ENDPOINTS						= map[string]string{
@@ -21,14 +24,19 @@ var (
 
 var eligibleApps = []string{"production", "devnet"}
 
-func getConfig() Config {
-	// attemptCount := 0
-  // backoffFactor := 1
+func GetConfig() Config {
+	attemptCount := 0
+  backoffFactor := 1
   // maxAttempt := 10
 
 	envApp := os.Getenv("APP")
 
 	for {
+		if attemptCount > 0 {
+			time.Sleep(time.Duration(backoffFactor) * 10 * time.Millisecond)
+			backoffFactor *= 2
+		}
+		attemptCount++;
 		response, err := http.Get("https://api.solend.fi/v1/config?deployment="+envApp)	
 		if err != nil {
 			fmt.Print(err.Error())

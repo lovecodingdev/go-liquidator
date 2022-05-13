@@ -1,4 +1,8 @@
-package main
+package global
+
+import (
+	"math/big"
+)
 
 type Config struct {
   ProgramID string		`json:"programID"`
@@ -36,4 +40,12 @@ type Reserve struct {
   LiquidityAddress string							`json:"liquidityAddress"`
   LiquidityFeeReceiverAddress string	`json:"liquidityFeeReceiverAddress"`
   UserSupplyCap uint8									`json:"userSupplyCap"`
+}
+
+type ReserveAsset struct {
+	Symbol string
+	ReserveAddress string
+	MintAddress string
+	Decimals *big.Int
+	Price *big.Int
 }
