@@ -48,35 +48,34 @@ func GetObligations(c *client.Client, config global.Config, lendingMarket string
 	return obligations
 }
 
+func GetReserves(c *client.Client, config global.Config, lendingMarket string) []AccountWithReserve {
+	cfg := rpc.GetProgramAccountsConfig{
+		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
+		Commitment: rpc.CommitmentConfirmed,
+		Filters: []rpc.GetProgramAccountsConfigFilter{
+			{
+				MemCmp: &rpc.GetProgramAccountsConfigFilterMemCmp{
+					Offset: 10,
+					Bytes:  lendingMarket,
+				},
+			},
+			{
+				DataSize: RESERVE_LEN,
+			},
+		},
+	}
 
-// func GetReserves(c *client.Client, config Config, lendingMarket string) []AccountWithObligation {
-// 	cfg := rpc.GetProgramAccountsConfig{
-// 		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
-// 		Commitment: rpc.CommitmentConfirmed,
-// 		Filters: []rpc.GetProgramAccountsConfigFilter{
-// 			{
-// 				MemCmp: &rpc.GetProgramAccountsConfigFilterMemCmp{
-// 					Offset: 10,
-// 					Bytes:  lendingMarket,
-// 				},
-// 			},
-// 			{
-// 				DataSize: RESERVE_LEN,
-// 			},
-// 		},
-// 	}
+  resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
+  if err != nil {
+    fmt.Println(err)
+		return []AccountWithReserve{}
+  }
 
-//   resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
-//   if err != nil {
-//     fmt.Println(err)
-// 		return []AccountWithObligation{}
-//   }
+	var reserves []AccountWithReserve
+	for _, account := range resp.Result {
+		AccountWithReserve := ReserveParser(account.Pubkey, account.Account)
+		reserves = append(reserves, AccountWithReserve)
+	}
 
-// 	var obligations []AccountWithObligation
-// 	for _, account := range resp.Result {
-// 		accountWithObligation := ObligationParser(account.Pubkey, account.Account)
-// 		obligations = append(obligations, accountWithObligation)
-// 	}
-
-// 	return obligations
-// }
+	return reserves
+}

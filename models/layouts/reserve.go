@@ -88,71 +88,153 @@ func ReserveDataDecode(){
   var _pubkey [32]byte
   var _uint128 [16]byte
 
-  var r Reserve
+  var reserve Reserve
 
-  binary.Read(buf, binary.LittleEndian, &r.Version)
-  binary.Read(buf, binary.LittleEndian, &r.LastUpdate.Slot)
-  binary.Read(buf, binary.LittleEndian, &r.LastUpdate.Stale)
+  binary.Read(buf, binary.LittleEndian, &reserve.Version)
+  binary.Read(buf, binary.LittleEndian, &reserve.LastUpdate.Slot)
+  binary.Read(buf, binary.LittleEndian, &reserve.LastUpdate.Stale)
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.LendingMarket = base58.Encode(_pubkey[:])
+  reserve.LendingMarket = base58.Encode(_pubkey[:])
 
 	//Liquidity
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Liquidity.MintPubkey = base58.Encode(_pubkey[:])
+  reserve.Liquidity.MintPubkey = base58.Encode(_pubkey[:])
 
-	binary.Read(buf, binary.LittleEndian, &r.Liquidity.MintDecimals)
-
-  binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Liquidity.SupplyPubkey = base58.Encode(_pubkey[:])
+	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.MintDecimals)
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Liquidity.PythOraclePubkey = base58.Encode(_pubkey[:])
+  reserve.Liquidity.SupplyPubkey = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Liquidity.SwitchboardOraclePubkey = base58.Encode(_pubkey[:])
+  reserve.Liquidity.PythOraclePubkey = base58.Encode(_pubkey[:])
 
-	binary.Read(buf, binary.LittleEndian, &r.Liquidity.AvailableAmount)
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Liquidity.SwitchboardOraclePubkey = base58.Encode(_pubkey[:])
 
-	binary.Read(buf, binary.LittleEndian, &_uint128)
-  r.Liquidity.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
-
-	binary.Read(buf, binary.LittleEndian, &_uint128)
-  r.Liquidity.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.AvailableAmount)
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  r.Liquidity.MarketPrice = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+
+	binary.Read(buf, binary.LittleEndian, &_uint128)
+  reserve.Liquidity.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+
+	binary.Read(buf, binary.LittleEndian, &_uint128)
+  reserve.Liquidity.MarketPrice = bigIntFromBytes(_uint128[:])
 
 	//Collateral
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Collateral.MintPubkey = base58.Encode(_pubkey[:])
+  reserve.Collateral.MintPubkey = base58.Encode(_pubkey[:])
 
-	binary.Read(buf, binary.LittleEndian, &r.Collateral.MintTotalSupply)
+	binary.Read(buf, binary.LittleEndian, &reserve.Collateral.MintTotalSupply)
 
 	binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Collateral.SupplyPubkey = base58.Encode(_pubkey[:])
+  reserve.Collateral.SupplyPubkey = base58.Encode(_pubkey[:])
 
 	//Config
-	binary.Read(buf, binary.LittleEndian, &r.Config.OptimalUtilizationRate)
-	binary.Read(buf, binary.LittleEndian, &r.Config.LoanToValueRatio)
-	binary.Read(buf, binary.LittleEndian, &r.Config.LiquidationBonus)
-	binary.Read(buf, binary.LittleEndian, &r.Config.LiquidationThreshold)
-	binary.Read(buf, binary.LittleEndian, &r.Config.MinBorrowRate)
-	binary.Read(buf, binary.LittleEndian, &r.Config.OptimalBorrowRate)
-	binary.Read(buf, binary.LittleEndian, &r.Config.MaxBorrowRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.OptimalUtilizationRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LoanToValueRatio)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LiquidationBonus)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LiquidationThreshold)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.MinBorrowRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.OptimalBorrowRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.MaxBorrowRate)
 
 	//Config.Fees
-	binary.Read(buf, binary.LittleEndian, &r.Config.Fees.BorrowFeeWad)
-	binary.Read(buf, binary.LittleEndian, &r.Config.Fees.FlashLoanFeeWad)
-	binary.Read(buf, binary.LittleEndian, &r.Config.Fees.HostFeePercentage)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.BorrowFeeWad)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.FlashLoanFeeWad)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.HostFeePercentage)
 
-	binary.Read(buf, binary.LittleEndian, &r.Config.DepositLimit)
-	binary.Read(buf, binary.LittleEndian, &r.Config.BorrowLimit)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.DepositLimit)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.BorrowLimit)
 
 	binary.Read(buf, binary.LittleEndian, &_pubkey)
-  r.Config.FeeReceiver = base58.Encode(_pubkey[:])
+  reserve.Config.FeeReceiver = base58.Encode(_pubkey[:])
 
 	buf.Next(256)
 
-  fmt.Println(r)
+  fmt.Println(reserve)
 }
+
+func ReserveParser (pubkey string, info rpc.GetProgramAccountsAccount) AccountWithReserve {
+  data := info.Data.([]any)
+	dec, _ := base64.StdEncoding.DecodeString(data[0].(string))
+
+  buf := bytes.NewBuffer(dec)
+
+  var _pubkey [32]byte
+  var _uint128 [16]byte
+
+  var reserve Reserve
+
+  binary.Read(buf, binary.LittleEndian, &reserve.Version)
+  binary.Read(buf, binary.LittleEndian, &reserve.LastUpdate.Slot)
+  binary.Read(buf, binary.LittleEndian, &reserve.LastUpdate.Stale)
+
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.LendingMarket = base58.Encode(_pubkey[:])
+
+	//Liquidity
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Liquidity.MintPubkey = base58.Encode(_pubkey[:])
+
+	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.MintDecimals)
+
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Liquidity.SupplyPubkey = base58.Encode(_pubkey[:])
+
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Liquidity.PythOraclePubkey = base58.Encode(_pubkey[:])
+
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Liquidity.SwitchboardOraclePubkey = base58.Encode(_pubkey[:])
+
+	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.AvailableAmount)
+
+	binary.Read(buf, binary.LittleEndian, &_uint128)
+  reserve.Liquidity.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+
+	binary.Read(buf, binary.LittleEndian, &_uint128)
+  reserve.Liquidity.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+
+	binary.Read(buf, binary.LittleEndian, &_uint128)
+  reserve.Liquidity.MarketPrice = bigIntFromBytes(_uint128[:])
+
+	//Collateral
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Collateral.MintPubkey = base58.Encode(_pubkey[:])
+
+	binary.Read(buf, binary.LittleEndian, &reserve.Collateral.MintTotalSupply)
+
+	binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Collateral.SupplyPubkey = base58.Encode(_pubkey[:])
+
+	//Config
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.OptimalUtilizationRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LoanToValueRatio)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LiquidationBonus)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.LiquidationThreshold)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.MinBorrowRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.OptimalBorrowRate)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.MaxBorrowRate)
+
+	//Config.Fees
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.BorrowFeeWad)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.FlashLoanFeeWad)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.Fees.HostFeePercentage)
+
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.DepositLimit)
+	binary.Read(buf, binary.LittleEndian, &reserve.Config.BorrowLimit)
+
+	binary.Read(buf, binary.LittleEndian, &_pubkey)
+  reserve.Config.FeeReceiver = base58.Encode(_pubkey[:])
+
+	buf.Next(256)
+
+  return AccountWithReserve {
+    pubkey,
+    info,
+    reserve,
+  }
+};

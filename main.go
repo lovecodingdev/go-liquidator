@@ -10,7 +10,7 @@ import (
 
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
-	. "go-liquidator/models/layouts"
+	// . "go-liquidator/models/layouts"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
@@ -20,8 +20,8 @@ import (
 
 func main() {
 	// ObligationDataDecode()
-	ReserveDataDecode()
-	return
+	// ReserveDataDecode()
+	// return
 
   err := godotenv.Load()
   if err != nil {
@@ -60,6 +60,9 @@ func main() {
 			fmt.Println(allObligations[0])
 			fmt.Println("\n")
 
+			allReserves := GetReserves(c, config, market.Address);
+			fmt.Println(allReserves)
+			fmt.Println("\n")
 		}	
 	}
 }
