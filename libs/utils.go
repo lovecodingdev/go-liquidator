@@ -39,7 +39,7 @@ func GetObligations(c *client.Client, config Config, lendingMarket string) {
 		return
   }
 
-	var obligations AccountWithObligation
+	var obligations []AccountWithObligation
 	for _, account := range resp.Result {
 		accountWithObligation := ObligationParser(account.Pubkey, account.Account)
 		obligations = append(obligations, accountWithObligation)
