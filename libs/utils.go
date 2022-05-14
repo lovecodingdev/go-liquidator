@@ -7,7 +7,7 @@ import (
 	// "math"
 	// "math/big"
 
-	. "go-liquidator/global"
+	"go-liquidator/global"
 	. "go-liquidator/models/layouts"
 
 	"github.com/portto/solana-go-sdk/client"
@@ -16,7 +16,7 @@ import (
 
 )
 
-func GetObligations(c *client.Client, config Config, lendingMarket string) {
+func GetObligations(c *client.Client, config global.Config, lendingMarket string) []AccountWithObligation {
 	cfg := rpc.GetProgramAccountsConfig{
 		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
 		Commitment: rpc.CommitmentConfirmed,
@@ -36,7 +36,7 @@ func GetObligations(c *client.Client, config Config, lendingMarket string) {
   resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
   if err != nil {
     fmt.Println(err)
-		return
+		return []AccountWithObligation{}
   }
 
 	var obligations []AccountWithObligation
@@ -47,3 +47,36 @@ func GetObligations(c *client.Client, config Config, lendingMarket string) {
 
 	return obligations
 }
+
+
+// func GetReserves(c *client.Client, config Config, lendingMarket string) []AccountWithObligation {
+// 	cfg := rpc.GetProgramAccountsConfig{
+// 		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
+// 		Commitment: rpc.CommitmentConfirmed,
+// 		Filters: []rpc.GetProgramAccountsConfigFilter{
+// 			{
+// 				MemCmp: &rpc.GetProgramAccountsConfigFilterMemCmp{
+// 					Offset: 10,
+// 					Bytes:  lendingMarket,
+// 				},
+// 			},
+// 			{
+// 				DataSize: RESERVE_LEN,
+// 			},
+// 		},
+// 	}
+
+//   resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
+//   if err != nil {
+//     fmt.Println(err)
+// 		return []AccountWithObligation{}
+//   }
+
+// 	var obligations []AccountWithObligation
+// 	for _, account := range resp.Result {
+// 		accountWithObligation := ObligationParser(account.Pubkey, account.Account)
+// 		obligations = append(obligations, accountWithObligation)
+// 	}
+
+// 	return obligations
+// }

@@ -9,13 +9,14 @@ import (
   "bytes"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
+	// "encoding/hex"
 
 	// . "go-liquidator/global"
 
 	// "github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/rpc"
 	// "github.com/portto/solana-go-sdk/common"
+	"github.com/btcsuite/btcd/btcutil/base58"
 
 )
 
@@ -97,10 +98,10 @@ func ObligationDataDecode(){
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Stale)
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  po.LendingMarket = hex.EncodeToString(_pubkey[:])
+  po.LendingMarket = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  po.Owner = hex.EncodeToString(_pubkey[:])
+  po.Owner = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.DepositedValue = bigIntFromBytes(_uint128[:])
@@ -127,7 +128,7 @@ func ObligationDataDecode(){
     var oc ObligationCollateral
 
     binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
-    oc.DepositReserve = hex.EncodeToString(_pubkey[:])
+    oc.DepositReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
 
@@ -144,7 +145,7 @@ func ObligationDataDecode(){
     var ol ObligationLiquidity
 
     binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
-    ol.BorrowReserve = hex.EncodeToString(_pubkey[:])
+    ol.BorrowReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
     ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
@@ -193,10 +194,10 @@ func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) Accoun
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Stale)
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  po.LendingMarket = hex.EncodeToString(_pubkey[:])
+  po.LendingMarket = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_pubkey)
-  po.Owner = hex.EncodeToString(_pubkey[:])
+  po.Owner = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.DepositedValue = bigIntFromBytes(_uint128[:])
@@ -223,7 +224,7 @@ func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) Accoun
     var oc ObligationCollateral
 
     binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
-    oc.DepositReserve = hex.EncodeToString(_pubkey[:])
+    oc.DepositReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
 
@@ -240,7 +241,7 @@ func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) Accoun
     var ol ObligationLiquidity
 
     binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
-    ol.BorrowReserve = hex.EncodeToString(_pubkey[:])
+    ol.BorrowReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
     ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])

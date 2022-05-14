@@ -14,7 +14,7 @@ import (
 
 var (
 	// OBLIGATION_LEN			= 1300
-	RESERVE_LEN					= 619
+	// RESERVE_LEN					= 619
 	LENDING_MARKET_LEN	= 290
 	ENDPOINTS						= map[string]string{
 		"production": "https://solana-api.projectserum.com",
