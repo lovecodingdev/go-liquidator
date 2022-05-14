@@ -21,32 +21,38 @@ import (
 
 const OBLIGATION_LEN = 1300;
 
+type AccountWithObligation struct {
+  Pubkey string
+  Account rpc.GetProgramAccountsAccount
+  Info Obligation
+}
+
 type Obligation struct {
   Version uint8
   LastUpdate LastUpdate
   LendingMarket string
   Owner string
-  // @FIXME: check usages
+  DepositedValue *big.Int // decimals
+  BorrowedValue *big.Int // decimals
+  AllowedBorrowValue *big.Int // decimals
+  UnhealthyBorrowValue *big.Int // decimals
   Deposits []ObligationCollateral
-  // @FIXME: check usages
-  borrows []ObligationLiquidity
-  DepositedValue big.Int // decimals
-  BorrowedValue big.Int // decimals
-  AllowedBorrowValue big.Int // decimals
-  UnhealthyBorrowValue big.Int // decimals
+  Borrows []ObligationLiquidity
 }
 
 type ObligationCollateral struct {
-  DepositReserve string
-  DepositedAmount big.Int
-  MarketValue big.Int // decimals
+  DepositReserve string //32
+  DepositedAmount uint64 //8
+  MarketValue *big.Int // decimals
+  _Padding [32]byte
 }
 
 type ObligationLiquidity struct {
   BorrowReserve string
-  CumulativeBorrowRateWads big.Int // decimals
-  BorrowedAmountWads big.Int // decimals
-  MarketValue big.Int // decimals
+  CumulativeBorrowRateWads *big.Int // decimals
+  BorrowedAmountWads *big.Int // decimals
+  MarketValue *big.Int // decimals
+  _Padding [32]byte
 }
 
 type ProtoObligation struct {
@@ -83,104 +89,189 @@ func ObligationDataDecode(){
 
   var _pubkey [32]byte
   var _uint128 [16]byte
+
   var po ProtoObligation
+
   binary.Read(buf, binary.LittleEndian, &po.Version)
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Slot)
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Stale)
+
   binary.Read(buf, binary.LittleEndian, &_pubkey)
   po.LendingMarket = hex.EncodeToString(_pubkey[:])
+
   binary.Read(buf, binary.LittleEndian, &_pubkey)
   po.Owner = hex.EncodeToString(_pubkey[:])
+
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.DepositedValue = bigIntFromBytes(_uint128[:])
+
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.BorrowedValue = bigIntFromBytes(_uint128[:])
+
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.AllowedBorrowValue = bigIntFromBytes(_uint128[:])
+
   binary.Read(buf, binary.LittleEndian, &_uint128)
   po.UnhealthyBorrowValue = bigIntFromBytes(_uint128[:])
+
   buf.Next(64)
+
   binary.Read(buf, binary.LittleEndian, &po.DepositsLen)
   binary.Read(buf, binary.LittleEndian, &po.BorrowsLen)
   binary.Read(buf, binary.LittleEndian, &po.DataFlat)
 
-  fmt.Println(po, fmt.Sprintf("%x", po.DepositedValue) )
+  flatBuf := bytes.NewBuffer(po.DataFlat[:])
+
+  var deposits []ObligationCollateral
+	for d := 0; d < int(po.DepositsLen) ; d++ {
+    var oc ObligationCollateral
+
+    binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
+    oc.DepositReserve = hex.EncodeToString(_pubkey[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    oc.MarketValue = bigIntFromBytes(_uint128[:])
+  
+    flatBuf.Next(32)
+
+    deposits = append(deposits, oc)
+	}
+
+  var borrows []ObligationLiquidity
+	for d := 0; d < int(po.DepositsLen) ; d++ {
+    var ol ObligationLiquidity
+
+    binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
+    ol.BorrowReserve = hex.EncodeToString(_pubkey[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.MarketValue = bigIntFromBytes(_uint128[:])
+  
+    flatBuf.Next(32)
+
+    borrows = append(borrows, ol)
+	}
+
+  obligation := Obligation {
+    po.Version,
+    po.LastUpdate,
+    po.LendingMarket,
+    po.Owner,
+    po.DepositedValue,
+    po.BorrowedValue,
+    po.AllowedBorrowValue,
+    po.UnhealthyBorrowValue,
+    deposits,
+    borrows,
+  }
+
+  fmt.Println(obligation)
+
 }
 
-func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) {
+func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) AccountWithObligation {
   data := info.Data.([]any)
 	dec, _ := base64.StdEncoding.DecodeString(data[0].(string))
-  fmt.Println(data[0].(string))
-  fmt.Println(dec)
+
   buf := bytes.NewBuffer(dec)
 
   var _pubkey [32]byte
+  var _uint128 [16]byte
+
   var po ProtoObligation
+
   binary.Read(buf, binary.LittleEndian, &po.Version)
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Slot)
   binary.Read(buf, binary.LittleEndian, &po.LastUpdate.Stale)
-  binary.Read(buf, binary.LittleEndian, _pubkey)
-  po.LendingMarket = string(_pubkey[:])
-  fmt.Println(_pubkey)
 
-  // const buffer = Buffer.from(info.data);
-  // const {
-  //   version,
-  //   lastUpdate,
-  //   lendingMarket,
-  //   owner,
-  //   depositedValue,
-  //   borrowedValue,
-  //   allowedBorrowValue,
-  //   unhealthyBorrowValue,
-  //   depositsLen,
-  //   borrowsLen,
-  //   dataFlat,
-  // } = ObligationLayout.decode(buffer) as ProtoObligation;
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  po.LendingMarket = hex.EncodeToString(_pubkey[:])
 
-  // if (lastUpdate.slot.isZero()) {
-  //   return null;
-  // }
+  binary.Read(buf, binary.LittleEndian, &_pubkey)
+  po.Owner = hex.EncodeToString(_pubkey[:])
 
-  // const depositsBuffer = dataFlat.slice(
-  //   0,
-  //   depositsLen * ObligationCollateralLayout.span,
-  // );
-  // const deposits = BufferLayout.seq(
-  //   ObligationCollateralLayout,
-  //   depositsLen,
-  // ).decode(depositsBuffer) as ObligationCollateral[];
+  binary.Read(buf, binary.LittleEndian, &_uint128)
+  po.DepositedValue = bigIntFromBytes(_uint128[:])
 
-  // const borrowsBuffer = dataFlat.slice(
-  //   depositsBuffer.length,
-  //   depositsLen * ObligationCollateralLayout.span
-  //     + borrowsLen * ObligationLiquidityLayout.span,
-  // );
-  // const borrows = BufferLayout.seq(
-  //   ObligationLiquidityLayout,
-  //   borrowsLen,
-  // ).decode(borrowsBuffer) as ObligationLiquidity[];
+  binary.Read(buf, binary.LittleEndian, &_uint128)
+  po.BorrowedValue = bigIntFromBytes(_uint128[:])
 
-  // const obligation = {
-  //   version,
-  //   lastUpdate,
-  //   lendingMarket,
-  //   owner,
-  //   depositedValue,
-  //   borrowedValue,
-  //   allowedBorrowValue,
-  //   unhealthyBorrowValue,
-  //   deposits,
-  //   borrows,
-  // } as Obligation;
+  binary.Read(buf, binary.LittleEndian, &_uint128)
+  po.AllowedBorrowValue = bigIntFromBytes(_uint128[:])
 
-  // const details = {
-  //   pubkey,
-  //   account: {
-  //     ...info,
-  //   },
-  //   info: obligation,
-  // };
+  binary.Read(buf, binary.LittleEndian, &_uint128)
+  po.UnhealthyBorrowValue = bigIntFromBytes(_uint128[:])
 
-  // return details;
+  buf.Next(64)
+
+  binary.Read(buf, binary.LittleEndian, &po.DepositsLen)
+  binary.Read(buf, binary.LittleEndian, &po.BorrowsLen)
+  binary.Read(buf, binary.LittleEndian, &po.DataFlat)
+
+  flatBuf := bytes.NewBuffer(po.DataFlat[:])
+
+  var deposits []ObligationCollateral
+	for d := 0; d < int(po.DepositsLen) ; d++ {
+    var oc ObligationCollateral
+
+    binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
+    oc.DepositReserve = hex.EncodeToString(_pubkey[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    oc.MarketValue = bigIntFromBytes(_uint128[:])
+  
+    flatBuf.Next(32)
+
+    deposits = append(deposits, oc)
+	}
+
+  var borrows []ObligationLiquidity
+	for d := 0; d < int(po.DepositsLen) ; d++ {
+    var ol ObligationLiquidity
+
+    binary.Read(flatBuf, binary.LittleEndian, &_pubkey)
+    ol.BorrowReserve = hex.EncodeToString(_pubkey[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+
+    binary.Read(flatBuf, binary.LittleEndian, &_uint128)
+    ol.MarketValue = bigIntFromBytes(_uint128[:])
+  
+    flatBuf.Next(32)
+
+    borrows = append(borrows, ol)
+	}
+
+  obligation := Obligation {
+    po.Version,
+    po.LastUpdate,
+    po.LendingMarket,
+    po.Owner,
+    po.DepositedValue,
+    po.BorrowedValue,
+    po.AllowedBorrowValue,
+    po.UnhealthyBorrowValue,
+    deposits,
+    borrows,
+  }
+
+  return AccountWithObligation {
+    pubkey,
+    info,
+    obligation,
+  }
 };

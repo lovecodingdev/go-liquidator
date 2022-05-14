@@ -38,12 +38,12 @@ func GetObligations(c *client.Client, config Config, lendingMarket string) {
     fmt.Println(err)
 		return
   }
-	fmt.Println(resp.Result[0])
-	ObligationParser(resp.Result[0].Pubkey, resp.Result[0].Account)
 
-	// for _, account := range resp.Result {
-	// 	ObligationParser(account.Pubkey, account.Account)
-	// }
+	var obligations AccountWithObligation
+	for _, account := range resp.Result {
+		accountWithObligation := ObligationParser(account.Pubkey, account.Account)
+		obligations = append(obligations, accountWithObligation)
+	}
 
-	// return resp.map((account) => ObligationParser(account.pubkey, account.account));
+	return obligations
 }

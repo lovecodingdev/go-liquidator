@@ -10,7 +10,7 @@ import (
 
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
-	. "go-liquidator/models/layouts"
+	// . "go-liquidator/models/layouts"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
@@ -19,8 +19,8 @@ import (
 )
 
 func main() {
-	ObligationDataDecode()
-	return
+	// ObligationDataDecode()
+	// return
 
   err := godotenv.Load()
   if err != nil {
@@ -55,10 +55,9 @@ func main() {
 			fmt.Println(tokensOracle)
 			fmt.Println("\n")
 
-			GetObligations(c, config, market.Address);
-			// allObligations := GetObligations(c, config, market.Address);
-			// fmt.Println(allObligations)
-			// fmt.Println("\n")
+			allObligations := GetObligations(c, config, market.Address);
+			fmt.Println(tokensOracle)
+			fmt.Println("\n")
 
 		}	
 	}
