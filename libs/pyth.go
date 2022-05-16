@@ -6,8 +6,11 @@ import (
 	"context"
 	"math"
 	"math/big"
+  "bytes"
+	"encoding/binary"
 
 	. "go-liquidator/global"
+	"go-liquidator/libs/AggregatorState"
 
 	"github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/common"
@@ -37,33 +40,36 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   o
 		}
 	}
 
+	var price float64
 	if oracle.PriceAddress != "" && oracle.PriceAddress != NULL_ORACLE {
     result, _ := c.GetAccountInfo(context.TODO(), oracle.PriceAddress);
-		fmt.Println(result.Lamports)
-    // price = parsePriceData(result!.data).price;
+		buf := bytes.NewReader(result.Data)
+		var _price uint64
+		var exponent int32
+		buf.Seek(20, 0)
+		binary.Read(buf, binary.LittleEndian, &exponent)
+		buf.Seek(208, 0)
+		binary.Read(buf, binary.LittleEndian, &_price)
+		price = float64(_price) * math.Pow(10, float64(exponent))
+		fmt.Println(oracle.PriceAddress, price )
   } else {
-    // const pricePublicKey = new PublicKey(oracle.switchboardFeedAddress);
-    // const info = await connection.getAccountInfo(pricePublicKey);
-    // const owner = info?.owner.toString();
-    // if (owner === SWITCHBOARD_V1_ADDRESS) {
-    //   const result = AggregatorState.decodeDelimited((info?.data as Buffer)?.slice(1));
-    //   price = result?.lastRoundResult?.result;
-    // } else if (owner === SWITCHBOARD_V2_ADDRESS) {
-    //   if (!switchboardV2) {
-    //     switchboardV2 = await SwitchboardProgram.loadMainnet(connection);
-    //   }
-    //   const result = switchboardV2.decodeLatestAggregatorValue(info!);
-    //   price = result?.toNumber();
-    // } else {
-    //   console.error('unrecognized switchboard owner address: ', owner);
-    // }
+    result, _ := c.GetAccountInfo(context.TODO(), oracle.SwitchboardFeedAddress);
+		owner := result.Owner
+		fmt.Println("owner", owner, oracle.SwitchboardFeedAddress)
+		if owner == SWITCHBOARD_V1_ADDRESS {
+			agg := AggregatorState.DecodeDelimited(result.Data[1:])
+			price = agg.LastRoundResult.Result
+			fmt.Println(agg.CurrentRoundResult.Result, agg.LastRoundResult.Result)
+		} else if owner == SWITCHBOARD_V2_ADDRESS {
+
+		}
   }
 
-	Symbol := "BNB"
+	Symbol := oracle.Asset
 	ReserveAddress := reserve.Address
 	MintAddress := assetConfig.MintAddress
 	Decimals := big.NewInt(int64(math.Pow(10, float64(assetConfig.Decimals))))
-	Price := big.NewInt(1234)
+	Price := big.NewFloat(price)
 
 	rAsset := ReserveAsset {
 		Symbol,

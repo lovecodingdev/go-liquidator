@@ -47,5 +47,5 @@ type ReserveAsset struct {
 	ReserveAddress string
 	MintAddress string
 	Decimals *big.Int
-	Price *big.Int
+	Price *big.Float
 }
