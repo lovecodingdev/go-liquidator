@@ -42,10 +42,16 @@ type Reserve struct {
   UserSupplyCap uint8									`json:"userSupplyCap"`
 }
 
-type ReserveAsset struct {
+type OracleToken struct {
 	Symbol string
 	ReserveAddress string
 	MintAddress string
 	Decimals *big.Int
 	Price *big.Float
+}
+
+type WalletTokenData struct {
+  Balance int64
+  BalanceBase int64
+  Symbol string
 }

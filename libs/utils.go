@@ -9,10 +9,12 @@ import (
 
 	"go-liquidator/global"
 	. "go-liquidator/models/layouts"
+	"go-liquidator/utils"
 
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/rpc"
 	// "github.com/portto/solana-go-sdk/common"
+	"github.com/portto/solana-go-sdk/types"
 
 )
 
@@ -41,7 +43,8 @@ func GetObligations(c *client.Client, config global.Config, lendingMarket string
 
 	var obligations []AccountWithObligation
 	for _, account := range resp.Result {
-		accountWithObligation := ObligationParser(account.Pubkey, account.Account)
+		info, _ := utils.RpcProgramAccountInfoToClientAccountInfo(account.Account)
+		accountWithObligation := ObligationParser(account.Pubkey, info)
 		obligations = append(obligations, accountWithObligation)
 	}
 
@@ -73,9 +76,18 @@ func GetReserves(c *client.Client, config global.Config, lendingMarket string) [
 
 	var reserves []AccountWithReserve
 	for _, account := range resp.Result {
-		AccountWithReserve := ReserveParser(account.Pubkey, account.Account)
+		info, _ := utils.RpcProgramAccountInfoToClientAccountInfo(account.Account)
+		AccountWithReserve := ReserveParser(account.Pubkey, info)
 		reserves = append(reserves, AccountWithReserve)
 	}
 
 	return reserves
+}
+
+func GetWalletTokenData(c *client.Client, config global.Config, wallet types.Account, mintAddress string, symbol string) global.WalletTokenData {
+	return global.WalletTokenData {
+		-1,
+		-1,
+		symbol,
+	}
 }

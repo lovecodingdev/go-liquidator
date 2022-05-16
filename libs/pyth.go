@@ -1,7 +1,7 @@
 package libs
 
 import (
-	"fmt"
+	// "fmt"
 	"sync"
 	"context"
 	"math"
@@ -23,7 +23,7 @@ const (
 	SWITCHBOARD_V2_ADDRESS = "SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f"
 )
 
-func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   oracles []OracleAsset,	reserve Reserve, rAssets *[]ReserveAsset) {
+func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   oracles []OracleAsset,	reserve Reserve, oracleTokens *[]OracleToken) {
 	defer wg.Done()
 	
 	var oracle OracleAsset
@@ -51,15 +51,12 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   o
 		buf.Seek(208, 0)
 		binary.Read(buf, binary.LittleEndian, &_price)
 		price = float64(_price) * math.Pow(10, float64(exponent))
-		fmt.Println(oracle.PriceAddress, price )
   } else {
     result, _ := c.GetAccountInfo(context.TODO(), oracle.SwitchboardFeedAddress);
 		owner := result.Owner
-		fmt.Println("owner", owner, oracle.SwitchboardFeedAddress)
 		if owner == SWITCHBOARD_V1_ADDRESS {
 			agg := AggregatorState.DecodeDelimited(result.Data[1:])
 			price = agg.LastRoundResult.Result
-			fmt.Println(agg.CurrentRoundResult.Result, agg.LastRoundResult.Result)
 		} else if owner == SWITCHBOARD_V2_ADDRESS {
 
 		}
@@ -71,7 +68,7 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   o
 	Decimals := big.NewInt(int64(math.Pow(10, float64(assetConfig.Decimals))))
 	Price := big.NewFloat(price)
 
-	rAsset := ReserveAsset {
+	oracleToken := OracleToken {
 		Symbol,
 		ReserveAddress,
 		MintAddress,
@@ -79,19 +76,19 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   o
 		Price,
 	}
 
-	*rAssets = append(*rAssets, rAsset)
+	*oracleTokens = append(*oracleTokens, oracleToken)
 }
 
-func GetTokensOracleData(c *client.Client, config Config, reserves []Reserve) []ReserveAsset {
-	var rAssets []ReserveAsset
+func GetTokensOracleData(c *client.Client, config Config, reserves []Reserve) []OracleToken {
+	var oracleTokens []OracleToken
 
 	var wg sync.WaitGroup
 	oracles := config.Oracles.Assets
 	for _, reserve := range reserves {
 		wg.Add(1)
-		go getTokenOracleData(&wg, c, config, oracles, reserve, &rAssets)
+		go getTokenOracleData(&wg, c, config, oracles, reserve, &oracleTokens)
 	}
 	wg.Wait()
 
-	return rAssets
+	return oracleTokens
 }

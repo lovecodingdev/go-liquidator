@@ -13,8 +13,8 @@ import (
 
 	// . "go-liquidator/global"
 
-	// "github.com/portto/solana-go-sdk/client"
-	"github.com/portto/solana-go-sdk/rpc"
+	"github.com/portto/solana-go-sdk/client"
+	// "github.com/portto/solana-go-sdk/rpc"
 	// "github.com/portto/solana-go-sdk/common"
 	"github.com/btcsuite/btcd/btcutil/base58"
 )
@@ -27,7 +27,7 @@ var INITIAL_COLLATERAL_RATE = new(big.Int).Mul(big.NewInt(int64(INITIAL_COLLATER
 
 type AccountWithReserve struct {
   Pubkey string
-  Account rpc.GetProgramAccountsAccount
+  Account client.AccountInfo
   Info Reserve
 }
 
@@ -157,11 +157,8 @@ func ReserveDataDecode(){
   fmt.Println(reserve)
 }
 
-func ReserveParser (pubkey string, info rpc.GetProgramAccountsAccount) AccountWithReserve {
-  data := info.Data.([]any)
-	dec, _ := base64.StdEncoding.DecodeString(data[0].(string))
-
-  buf := bytes.NewBuffer(dec)
+func ReserveParser (pubkey string, info client.AccountInfo) AccountWithReserve {
+  buf := bytes.NewBuffer(info.Data)
 
   var _pubkey [32]byte
   var _uint128 [16]byte
@@ -231,6 +228,10 @@ func ReserveParser (pubkey string, info rpc.GetProgramAccountsAccount) AccountWi
   reserve.Config.FeeReceiver = base58.Encode(_pubkey[:])
 
 	buf.Next(256)
+
+  if reserve.LastUpdate.Slot == 0 {
+    return AccountWithReserve{}
+  }
 
   return AccountWithReserve {
     pubkey,

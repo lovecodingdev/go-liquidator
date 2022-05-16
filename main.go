@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "context"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -10,12 +10,15 @@ import (
 
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
-	// . "go-liquidator/models/layouts"
+	. "go-liquidator/models/layouts"
+	"go-liquidator/utils"
+	"go-liquidator/libs/actions"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/rpc"
 	"github.com/portto/solana-go-sdk/types"
+	"github.com/google/go-cmp/cmp"
 )
 
 func main() {
@@ -53,16 +56,97 @@ func main() {
       }
 
 			tokensOracle := GetTokensOracleData(c, config, market.Reserves);
-			fmt.Println(tokensOracle)
+			fmt.Println(utils.JsonFromObject(tokensOracle))
 			fmt.Println("\n")
 
 			allObligations := GetObligations(c, config, market.Address);
-			fmt.Println(allObligations[0])
+			fmt.Println(utils.JsonFromObject(allObligations[0]))
 			fmt.Println("\n")
 
 			allReserves := GetReserves(c, config, market.Address);
-			fmt.Println(allReserves)
+			fmt.Println(utils.JsonFromObject(allReserves))
 			fmt.Println("\n")
+
+			for _, obligation := range allObligations {
+				for !cmp.Equal(obligation, (AccountWithObligation{})) {
+					refreshed := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+
+					_cmp := refreshed.BorrowedValue.Cmp(refreshed.UnhealthyBorrowValue)
+					if _cmp == -1 || _cmp == 0 {
+						break
+					}
+
+					// select repay token that has the highest market value
+					var selectedBorrow Borrow
+					for _, borrow := range refreshed.Borrows {
+						_cmp := borrow.MarketValue.Cmp(selectedBorrow.MarketValue)
+						if (selectedBorrow == (Borrow{}) || _cmp == 1) {
+							selectedBorrow = borrow;
+						}
+					}
+
+					// select the withdrawal collateral token with the highest market value
+					var selectedDeposit Deposit
+					for _, deposit := range refreshed.Deposits {
+						_cmp := deposit.MarketValue.Cmp(selectedDeposit.MarketValue)
+						if (selectedDeposit == (Deposit{}) || _cmp == 1) {
+							selectedDeposit = deposit
+						}
+					}
+
+					if (selectedBorrow == (Borrow{}) || selectedDeposit == (Deposit{})) {
+						// skip toxic obligations caused by toxic oracle data
+						break;
+					}
+
+					fmt.Printf(
+						`Obligation %s is underwater
+						borrowedValue: %s
+						unhealthyBorrowValue: %s
+						market address: %s`,
+						obligation.Pubkey,
+						refreshed.BorrowedValue.String(),
+						refreshed.UnhealthyBorrowValue.String(),
+						market.Address,
+					);
+
+					walletTokenData := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
+					if (walletTokenData.BalanceBase == 0) {
+						fmt.Printf(
+							`insufficient %s to liquidate obligation %s in market: %s`,
+							selectedBorrow.Symbol,
+							obligation.Pubkey,
+							market.Address,
+						);
+						break;
+					} else if (walletTokenData.BalanceBase < 0) {
+						fmt.Printf(
+							`failed to get wallet balance for %s to liquidate obligation %s in market: %s. 
+							Potentially network error or token account does not exist in wallet`,
+							selectedBorrow.Symbol,
+							obligation.Pubkey,
+							market.Address,
+						);
+						break;
+					}
+
+					// Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
+					// 50% val of all borrowed assets.
+					actions.LiquidateAndRedeem(
+						c,
+						config,
+						payer,
+						walletTokenData.BalanceBase,
+						selectedBorrow.Symbol,
+						selectedDeposit.Symbol,
+						market,
+						obligation,
+					);
+
+					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey);
+					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation);
+				}
+			}
 		}	
 	}
 }

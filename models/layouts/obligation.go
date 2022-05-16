@@ -13,8 +13,8 @@ import (
 
 	// . "go-liquidator/global"
 
-	// "github.com/portto/solana-go-sdk/client"
-	"github.com/portto/solana-go-sdk/rpc"
+	"github.com/portto/solana-go-sdk/client"
+	// "github.com/portto/solana-go-sdk/rpc"
 	// "github.com/portto/solana-go-sdk/common"
 	"github.com/btcsuite/btcd/btcutil/base58"
 
@@ -24,7 +24,7 @@ const OBLIGATION_LEN = 1300;
 
 type AccountWithObligation struct {
   Pubkey string
-  Account rpc.GetProgramAccountsAccount
+  Account client.AccountInfo
   Info Obligation
 }
 
@@ -178,11 +178,8 @@ func ObligationDataDecode(){
 
 }
 
-func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) AccountWithObligation {
-  data := info.Data.([]any)
-	dec, _ := base64.StdEncoding.DecodeString(data[0].(string))
-
-  buf := bytes.NewBuffer(dec)
+func ObligationParser (pubkey string, info client.AccountInfo) AccountWithObligation {
+  buf := bytes.NewBuffer(info.Data)
 
   var _pubkey [32]byte
   var _uint128 [16]byte
@@ -216,6 +213,10 @@ func ObligationParser (pubkey string, info rpc.GetProgramAccountsAccount) Accoun
   binary.Read(buf, binary.LittleEndian, &po.DepositsLen)
   binary.Read(buf, binary.LittleEndian, &po.BorrowsLen)
   binary.Read(buf, binary.LittleEndian, &po.DataFlat)
+
+  if po.LastUpdate.Slot == 0 {
+    return AccountWithObligation{}
+  }
 
   flatBuf := bytes.NewBuffer(po.DataFlat[:])
 
