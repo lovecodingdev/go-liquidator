@@ -239,3 +239,19 @@ func ReserveParser (pubkey string, info client.AccountInfo) AccountWithReserve {
     reserve,
   }
 };
+
+
+func GetCollateralExchangeRate (reserve Reserve) *big.Int {
+	totalLiquidity := big.NewInt(0)
+  totalLiquidity = totalLiquidity.Mul(big.NewInt(int64(reserve.Liquidity.AvailableAmount)), WAD)
+	totalLiquidity = totalLiquidity.Add(totalLiquidity, reserve.Liquidity.BorrowedAmountWads)
+
+  rate := big.NewInt(0)
+  if reserve.Collateral.MintTotalSupply == 0 || totalLiquidity.Uint64() == 0 {
+    rate = INITIAL_COLLATERAL_RATE;
+  } else {
+		rate = rate.Mul(big.NewInt(int64(reserve.Collateral.MintTotalSupply)), WAD)
+		rate = rate.Div(rate, totalLiquidity)
+  }
+  return rate;
+};
