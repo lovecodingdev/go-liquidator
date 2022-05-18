@@ -69,7 +69,7 @@ func main() {
 
 			for _, obligation := range allObligations {
 				for !cmp.Equal(obligation, (AccountWithObligation{})) {
-					refreshed := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+					refreshed, _ := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
 
 					_cmp := refreshed.BorrowedValue.Cmp(refreshed.UnhealthyBorrowValue)
 					if _cmp == -1 || _cmp == 0 {

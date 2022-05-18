@@ -13,6 +13,7 @@ import (
 
 	"go-liquidator/global"
 	. "go-liquidator/models/layouts"
+	. "go-liquidator/utils"
 
 	// "github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/rpc"
@@ -22,10 +23,10 @@ import (
 )
 
 func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithReserve, tokensOracle []global.OracleToken) (RefreshedObligation, error) {
-  depositedValue := big.NewInt(0)
-  borrowedValue := big.NewInt(0)
-  allowedBorrowValue := big.NewInt(0)
-  unhealthyBorrowValue := big.NewInt(0)
+  depositedValue := big.NewFloat(0)
+  borrowedValue := big.NewFloat(0)
+  allowedBorrowValue := big.NewFloat(0)
+  unhealthyBorrowValue := big.NewFloat(0)
   deposits := []Deposit{}
   borrows := []Borrow{}
   utilizationRatio := float32(0)
@@ -55,13 +56,14 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 				break
 			}
 		}
+		fmt.Println("refresh", JsonFromObject(reserve))
 
-		collateralExchangeRate := GetCollateralExchangeRate(reserve)
-		marketValue := big.NewInt(0)
-		marketValue = marketValue.Mul(big.NewInt(int64(deposit.DepositedAmount)), WAD)
-		marketValue = marketValue.Div(marketValue, collateralExchangeRate)
-		marketValue = marketValue.Mul(marketValue, oracleToken.Price)
-		marketValue = marketValue.Div(marketValue, oracleToken.Decimals)
+		// collateralExchangeRate := GetCollateralExchangeRate(reserve)
+		// marketValue := big.NewFloat(0)
+		// marketValue = marketValue.Mul(big.NewFloat(int64(deposit.DepositedAmount)), WAD)
+		// marketValue = marketValue.Div(marketValue, collateralExchangeRate)
+		// marketValue = marketValue.Mul(marketValue, oracleToken.Price)
+		// marketValue = marketValue.Div(marketValue, oracleToken.Decimals)
 
 	}
 
@@ -77,10 +79,10 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 }
 
 type RefreshedObligation struct {
-	DepositedValue *big.Int
-	BorrowedValue *big.Int
-	AllowedBorrowValue *big.Int
-	UnhealthyBorrowValue *big.Int
+	DepositedValue *big.Float
+	BorrowedValue *big.Float
+	AllowedBorrowValue *big.Float
+	UnhealthyBorrowValue *big.Float
 	Deposits []Deposit
 	Borrows []Borrow
 	UtilizationRatio float32
@@ -88,15 +90,15 @@ type RefreshedObligation struct {
 
 type Borrow struct {
   BorrowReserve string
-  BorrowAmountWads *big.Int
-  MarketValue *big.Int
+  BorrowAmountWads *big.Float
+  MarketValue *big.Float
   MintAddress string
   Symbol string
 };
 
 type Deposit struct {
   DepositReserve string
-  DepositAmount *big.Int
-  MarketValue *big.Int
+  DepositAmount *big.Float
+  MarketValue *big.Float
   Symbol string
 };

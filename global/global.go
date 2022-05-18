@@ -46,7 +46,7 @@ type OracleToken struct {
 	Symbol string
 	ReserveAddress string
 	MintAddress string
-	Decimals *big.Int
+	Decimals *big.Float
 	Price *big.Float
 }
 

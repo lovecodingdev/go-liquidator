@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	// "encoding/hex"
 
-	// . "go-liquidator/global"
+	. "go-liquidator/utils"
 
 	"github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/rpc"
@@ -20,10 +20,10 @@ import (
 )
 
 const RESERVE_LEN = 619
-var WAD = big.NewInt(1000000000000000000)
+var WAD = big.NewFloat(1000000000000000000)
 
 var INITIAL_COLLATERAL_RATIO = 1
-var INITIAL_COLLATERAL_RATE = new(big.Int).Mul(big.NewInt(int64(INITIAL_COLLATERAL_RATIO)), WAD)
+var INITIAL_COLLATERAL_RATE = new(big.Float).Mul(big.NewFloat(float64(INITIAL_COLLATERAL_RATIO)), WAD)
 
 type AccountWithReserve struct {
   Pubkey string
@@ -50,9 +50,9 @@ type ReserveLiquidity struct {
   PythOraclePubkey string
   SwitchboardOraclePubkey string
   AvailableAmount uint64
-  BorrowedAmountWads *big.Int
-  CumulativeBorrowRateWads *big.Int
-  MarketPrice *big.Int
+  BorrowedAmountWads *big.Float
+  CumulativeBorrowRateWads *big.Float
+  MarketPrice *big.Float
 }
 
 type ReserveCollateral struct {
@@ -115,13 +115,13 @@ func ReserveDataDecode(){
 	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.AvailableAmount)
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.BorrowedAmountWads = BigFloatFromBytes(_uint128[:])
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.CumulativeBorrowRateWads = BigFloatFromBytes(_uint128[:])
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.MarketPrice = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.MarketPrice = BigFloatFromBytes(_uint128[:])
 
 	//Collateral
   binary.Read(buf, binary.LittleEndian, &_pubkey)
@@ -190,13 +190,13 @@ func ReserveParser (pubkey string, info client.AccountInfo) AccountWithReserve {
 	binary.Read(buf, binary.LittleEndian, &reserve.Liquidity.AvailableAmount)
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.BorrowedAmountWads = BigFloatFromBytes(_uint128[:])
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.CumulativeBorrowRateWads = BigFloatFromBytes(_uint128[:])
 
 	binary.Read(buf, binary.LittleEndian, &_uint128)
-  reserve.Liquidity.MarketPrice = bigIntFromBytes(_uint128[:])
+  reserve.Liquidity.MarketPrice = BigFloatFromBytes(_uint128[:])
 
 	//Collateral
   binary.Read(buf, binary.LittleEndian, &_pubkey)
@@ -241,17 +241,17 @@ func ReserveParser (pubkey string, info client.AccountInfo) AccountWithReserve {
 };
 
 
-func GetCollateralExchangeRate (reserve Reserve) *big.Int {
-	totalLiquidity := big.NewInt(0)
-  totalLiquidity = totalLiquidity.Mul(big.NewInt(int64(reserve.Liquidity.AvailableAmount)), WAD)
+func GetCollateralExchangeRate (reserve Reserve) *big.Float {
+	totalLiquidity := big.NewFloat(0)
+  totalLiquidity = totalLiquidity.Mul(big.NewFloat(float64(reserve.Liquidity.AvailableAmount)), WAD)
 	totalLiquidity = totalLiquidity.Add(totalLiquidity, reserve.Liquidity.BorrowedAmountWads)
 
-  rate := big.NewInt(0)
-  if reserve.Collateral.MintTotalSupply == 0 || totalLiquidity.Uint64() == 0 {
+  rate := big.NewFloat(0)
+  if reserve.Collateral.MintTotalSupply == 0 || totalLiquidity.Cmp(big.NewFloat(0)) == 0 {
     rate = INITIAL_COLLATERAL_RATE;
   } else {
-		rate = rate.Mul(big.NewInt(int64(reserve.Collateral.MintTotalSupply)), WAD)
-		rate = rate.Div(rate, totalLiquidity)
+		rate = rate.Mul(big.NewFloat(float64(reserve.Collateral.MintTotalSupply)), WAD)
+		rate = rate.Quo(rate, totalLiquidity)
   }
   return rate;
 };
