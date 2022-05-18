@@ -4,7 +4,8 @@ import (
 	"fmt"
 	// "sync"
 	"context"
-	// "math"
+	"math"
+
 	// "math/big"
 
 	"go-liquidator/global"
@@ -12,15 +13,39 @@ import (
 	"go-liquidator/utils"
 
 	"github.com/portto/solana-go-sdk/client"
+	"github.com/portto/solana-go-sdk/common"
+	"github.com/portto/solana-go-sdk/program/tokenprog"
 	"github.com/portto/solana-go-sdk/rpc"
-	// "github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
-
 )
+
+// Converts amount to human (rebase with decimals)
+func ToHuman(config global.Config, amount string, symbol string) string {
+	// decimals := GetDecimals(config, symbol)
+	// return toHumanDec(amount, decimals);
+	return amount
+}
+
+func GetDecimals(config global.Config, symbol string) uint8 {
+	tokenInfo := GetTokenInfo(config, symbol)
+	return tokenInfo.Decimals
+}
+
+// Returns token info from config
+func GetTokenInfo(config global.Config, symbol string) global.Asset {
+	var asset global.Asset
+	for _, _asset := range config.Assets {
+		if _asset.Symbol == symbol {
+			asset = _asset
+			break
+		}
+	}
+	return asset
+}
 
 func GetObligations(c *client.Client, config global.Config, lendingMarket string) []AccountWithObligation {
 	cfg := rpc.GetProgramAccountsConfig{
-		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
+		Encoding:   rpc.GetProgramAccountsConfigEncodingBase64,
 		Commitment: rpc.CommitmentConfirmed,
 		Filters: []rpc.GetProgramAccountsConfigFilter{
 			{
@@ -35,11 +60,11 @@ func GetObligations(c *client.Client, config global.Config, lendingMarket string
 		},
 	}
 
-  resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
-  if err != nil {
-    fmt.Println(err)
+	resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
+	if err != nil {
+		fmt.Println(err)
 		return []AccountWithObligation{}
-  }
+	}
 
 	var obligations []AccountWithObligation
 	for _, account := range resp.Result {
@@ -53,7 +78,7 @@ func GetObligations(c *client.Client, config global.Config, lendingMarket string
 
 func GetReserves(c *client.Client, config global.Config, lendingMarket string) []AccountWithReserve {
 	cfg := rpc.GetProgramAccountsConfig{
-		Encoding: rpc.GetProgramAccountsConfigEncodingBase64,
+		Encoding:   rpc.GetProgramAccountsConfigEncodingBase64,
 		Commitment: rpc.CommitmentConfirmed,
 		Filters: []rpc.GetProgramAccountsConfigFilter{
 			{
@@ -68,11 +93,11 @@ func GetReserves(c *client.Client, config global.Config, lendingMarket string) [
 		},
 	}
 
-  resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
-  if err != nil {
-    fmt.Println(err)
+	resp, err := c.RpcClient.GetProgramAccountsWithConfig(context.TODO(), config.ProgramID, cfg)
+	if err != nil {
+		fmt.Println(err)
 		return []AccountWithReserve{}
-  }
+	}
 
 	var reserves []AccountWithReserve
 	for _, account := range resp.Result {
@@ -84,10 +109,29 @@ func GetReserves(c *client.Client, config global.Config, lendingMarket string) [
 	return reserves
 }
 
-func GetWalletTokenData(c *client.Client, config global.Config, wallet types.Account, mintAddress string, symbol string) global.WalletTokenData {
-	return global.WalletTokenData {
-		-1,
-		-1,
-		symbol,
+func GetWalletTokenData(c *client.Client, config global.Config, wallet types.Account, mintAddress string, symbol string) (global.WalletTokenData, error) {
+	walletTokenData := global.WalletTokenData{
+		Balance:     -1,
+		BalanceBase: -1,
+		Symbol:      symbol,
 	}
+
+	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(mintAddress))
+	fmt.Println(userTokenAccount)
+
+	getAccountInfoResponse, err := c.GetAccountInfo(context.TODO(), userTokenAccount.ToBase58())
+	if err != nil {
+		return walletTokenData, fmt.Errorf("failed to get account info, err: %v", err)
+	}
+
+	tokenAccount, err := tokenprog.TokenAccountFromData(getAccountInfoResponse.Data)
+	if err != nil {
+		return walletTokenData, fmt.Errorf("failed to parse data to a token account, err: %v", err)
+	}
+
+	decimals := GetDecimals(config, symbol)
+	walletTokenData.Balance = float64(tokenAccount.Amount) / math.Pow(10, float64(decimals))
+	walletTokenData.BalanceBase = int64(tokenAccount.Amount)
+
+	return walletTokenData, nil
 }

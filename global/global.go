@@ -51,7 +51,7 @@ type OracleToken struct {
 }
 
 type WalletTokenData struct {
-  Balance int64
+  Balance float64
   BalanceBase int64
   Symbol string
 }

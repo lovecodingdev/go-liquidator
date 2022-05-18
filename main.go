@@ -2,23 +2,24 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
-	"encoding/json"
-	"io/ioutil"
 
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
+	"go-liquidator/libs/actions"
 	. "go-liquidator/models/layouts"
 	"go-liquidator/utils"
-	"go-liquidator/libs/actions"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
+
 	// "github.com/portto/solana-go-sdk/rpc"
-	"github.com/portto/solana-go-sdk/types"
 	"github.com/google/go-cmp/cmp"
+	"github.com/portto/solana-go-sdk/types"
 )
 
 func main() {
@@ -26,10 +27,10 @@ func main() {
 	// ReserveDataDecode()
 	// return
 
-  err := godotenv.Load()
-  if err != nil {
-    log.Fatal("Error loading .env file")
-  }
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	config := GetConfig()
 	fmt.Printf("config %s\n", config.ProgramID)
@@ -38,40 +39,41 @@ func main() {
 	clusterUrl := ENDPOINTS[ENV_APP]
 	c := client.NewClient(clusterUrl)
 
-	keypairFile, _ := os.Open("keypair.json")
+	keypairFile, _ := os.Open("keypair-prod.json")
 	defer keypairFile.Close()
 	byteValue, _ := ioutil.ReadAll(keypairFile)
 
-	var keypair []byte;
+	var keypair []byte
 	json.Unmarshal([]byte(byteValue), &keypair)
 
 	payer, _ := types.AccountFromBytes(keypair)
 	fmt.Printf(" app: %s\n clusterUrl: %s\n wallet: %s\n", ENV_APP, clusterUrl, payer.PublicKey.ToBase58())
 
 	ENV_MARKET := os.Getenv("MARKET")
-	for epoch := 0; epoch<1; epoch++ {
+	for epoch := 0; epoch < 1; epoch++ {
 		for _, market := range config.Markets {
 			if ENV_MARKET != "" && ENV_MARKET != market.Address {
-        continue;
-      }
+				continue
+			}
 
-			tokensOracle := GetTokensOracleData(c, config, market.Reserves);
-			fmt.Println(utils.JsonFromObject(tokensOracle))
-			fmt.Println("\n")
+			tokensOracle := GetTokensOracleData(c, config, market.Reserves)
+			// fmt.Println(utils.JsonFromObject(tokensOracle))
+			// fmt.Println("\n")
 
-			allObligations := GetObligations(c, config, market.Address);
-			fmt.Println(utils.JsonFromObject(allObligations[0]))
-			fmt.Println("\n")
+			allObligations := GetObligations(c, config, market.Address)
+			// fmt.Println(utils.JsonFromObject(allObligations[0]))
+			// fmt.Println("\n")
 
-			allReserves := GetReserves(c, config, market.Address);
-			fmt.Println(utils.JsonFromObject(allReserves))
-			fmt.Println("\n")
+			allReserves := GetReserves(c, config, market.Address)
+			// fmt.Println(utils.JsonFromObject(allReserves))
+			// fmt.Println("\n")
 
 			for _, obligation := range allObligations {
 				for !cmp.Equal(obligation, (AccountWithObligation{})) {
 					refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+					fmt.Println(utils.JsonFromObject(refreshed), err)
 					if err != nil {
-						continue
+						break
 					}
 
 					_cmp := refreshed.BorrowedValue.Cmp(refreshed.UnhealthyBorrowValue)
@@ -103,40 +105,37 @@ func main() {
 						}
 					}
 
-					if (selectedBorrow == (Borrow{}) || selectedDeposit == (Deposit{})) {
+					if selectedBorrow == (Borrow{}) || selectedDeposit == (Deposit{}) {
 						// skip toxic obligations caused by toxic oracle data
-						break;
+						break
 					}
 
 					fmt.Printf(
-						`Obligation %s is underwater
-						borrowedValue: %s
-						unhealthyBorrowValue: %s
-						market address: %s`,
+						"Obligation %s is underwater\nborrowedValue: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
 						obligation.Pubkey,
 						refreshed.BorrowedValue.String(),
 						refreshed.UnhealthyBorrowValue.String(),
 						market.Address,
-					);
+					)
 
-					walletTokenData := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
-					if (walletTokenData.BalanceBase == 0) {
+					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
+					fmt.Println(utils.JsonFromObject(walletTokenData), err)
+					if walletTokenData.BalanceBase == 0 {
 						fmt.Printf(
-							`insufficient %s to liquidate obligation %s in market: %s`,
+							"insufficient %s to liquidate obligation %s in market: %s \n",
 							selectedBorrow.Symbol,
 							obligation.Pubkey,
 							market.Address,
-						);
-						break;
-					} else if (walletTokenData.BalanceBase < 0) {
+						)
+						break
+					} else if walletTokenData.BalanceBase < 0 {
 						fmt.Printf(
-							`failed to get wallet balance for %s to liquidate obligation %s in market: %s. 
-							Potentially network error or token account does not exist in wallet`,
+							"failed to get wallet balance for %s to liquidate obligation %s in market: %s.\nPotentially network error or token account does not exist in wallet\n",
 							selectedBorrow.Symbol,
 							obligation.Pubkey,
 							market.Address,
-						);
-						break;
+						)
+						break
 					}
 
 					// Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
@@ -150,12 +149,12 @@ func main() {
 						selectedDeposit.Symbol,
 						market,
 						obligation,
-					);
+					)
 
-					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey);
-					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation);
+					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
+					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)
 				}
 			}
-		}	
+		}
 	}
 }
