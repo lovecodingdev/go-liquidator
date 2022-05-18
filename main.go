@@ -69,7 +69,10 @@ func main() {
 
 			for _, obligation := range allObligations {
 				for !cmp.Equal(obligation, (AccountWithObligation{})) {
-					refreshed := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+					refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+					if err != nil {
+						continue
+					}
 
 					_cmp := refreshed.BorrowedValue.Cmp(refreshed.UnhealthyBorrowValue)
 					if _cmp == -1 || _cmp == 0 {
@@ -79,17 +82,23 @@ func main() {
 					// select repay token that has the highest market value
 					var selectedBorrow Borrow
 					for _, borrow := range refreshed.Borrows {
-						_cmp := borrow.MarketValue.Cmp(selectedBorrow.MarketValue)
-						if (selectedBorrow == (Borrow{}) || _cmp == 1) {
-							selectedBorrow = borrow;
+						if selectedBorrow == (Borrow{}) {
+							selectedBorrow = borrow
+							continue
+						}
+						if borrow.MarketValue.Cmp(selectedBorrow.MarketValue) == 1 {
+							selectedBorrow = borrow
 						}
 					}
 
 					// select the withdrawal collateral token with the highest market value
 					var selectedDeposit Deposit
 					for _, deposit := range refreshed.Deposits {
-						_cmp := deposit.MarketValue.Cmp(selectedDeposit.MarketValue)
-						if (selectedDeposit == (Deposit{}) || _cmp == 1) {
+						if selectedDeposit == (Deposit{}) {
+							selectedDeposit = deposit
+							continue
+						}
+						if deposit.MarketValue.Cmp(selectedDeposit.MarketValue) == 1 {
 							selectedDeposit = deposit
 						}
 					}

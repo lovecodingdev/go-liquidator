@@ -46,8 +46,8 @@ type OracleToken struct {
 	Symbol string
 	ReserveAddress string
 	MintAddress string
-	Decimals *big.Int
-	Price *big.Float
+	Decimals *big.Rat
+	Price *big.Rat
 }
 
 type WalletTokenData struct {

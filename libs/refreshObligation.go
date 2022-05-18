@@ -22,13 +22,13 @@ import (
 )
 
 func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithReserve, tokensOracle []global.OracleToken) (RefreshedObligation, error) {
-  depositedValue := big.NewInt(0)
-  borrowedValue := big.NewInt(0)
-  allowedBorrowValue := big.NewInt(0)
-  unhealthyBorrowValue := big.NewInt(0)
+  depositedValue := new(big.Rat)
+  borrowedValue := new(big.Rat)
+  allowedBorrowValue := new(big.Rat)
+  unhealthyBorrowValue := new(big.Rat)
   deposits := []Deposit{}
   borrows := []Borrow{}
-  utilizationRatio := float32(0)
+  utilizationRatio := float64(0)
 
 	//todo: CalculateRefreshedObligation
 
@@ -57,12 +57,76 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 		}
 
 		collateralExchangeRate := GetCollateralExchangeRate(reserve)
-		marketValue := big.NewInt(0)
-		marketValue = marketValue.Mul(big.NewInt(int64(deposit.DepositedAmount)), WAD)
-		marketValue = marketValue.Div(marketValue, collateralExchangeRate)
+		marketValue := new(big.Rat)
+		marketValue = marketValue.Mul(big.NewRat(int64(deposit.DepositedAmount), 1), WAD)
+		marketValue = marketValue.Quo(marketValue, collateralExchangeRate)
 		marketValue = marketValue.Mul(marketValue, oracleToken.Price)
-		marketValue = marketValue.Div(marketValue, oracleToken.Decimals)
+		marketValue = marketValue.Quo(marketValue, oracleToken.Decimals)
 
+		loanToValueRate := GetLoanToValueRate(reserve)
+    liquidationThresholdRate := GetLiquidationThresholdRate(reserve)
+
+		depositedValue = depositedValue.Add(depositedValue, marketValue);
+    allowedBorrowValue = allowedBorrowValue.Add(allowedBorrowValue, marketValue.Mul(marketValue, loanToValueRate));
+    unhealthyBorrowValue = unhealthyBorrowValue.Add(unhealthyBorrowValue, marketValue.Mul(marketValue, liquidationThresholdRate));
+
+		deposits = append(deposits, Deposit {
+      deposit.DepositReserve,
+      big.NewRat(int64(deposit.DepositedAmount), 1),
+      marketValue,
+      oracleToken.Symbol,
+		})
+	}
+
+	for _, borrow := range obligation.Borrows {
+		var oracleToken global.OracleToken
+		for _, token := range tokensOracle {
+			if(token.ReserveAddress == borrow.BorrowReserve){
+				oracleToken = token
+				break
+			}
+		}
+		if oracleToken == (global.OracleToken{}) {
+			return RefreshedObligation{}, fmt.Errorf(
+				`Missing token info for reserve %s, 
+				skipping this obligation. Please restart liquidator to fetch latest configs from /v1/config`,
+				borrow.BorrowReserve,
+			)
+		}
+
+		var reserve Reserve
+		for _, r := range reserves {
+			if(r.Pubkey == borrow.BorrowReserve){
+				reserve = r.Info
+				break
+			}
+		}
+
+		borrowAmountWadsWithInterest := getBorrrowedAmountWadsWithInterest(
+      reserve.Liquidity.CumulativeBorrowRateWads,
+      borrow.CumulativeBorrowRateWads,
+      borrow.BorrowedAmountWads,
+    );
+		marketValue := new(big.Rat)
+		marketValue = marketValue.Mul(borrowAmountWadsWithInterest, oracleToken.Price)
+		marketValue = marketValue.Quo(marketValue, oracleToken.Decimals)
+
+		borrowedValue = borrowedValue.Add(borrowedValue, marketValue)
+
+		borrows = append(borrows, Borrow {
+			borrow.BorrowReserve,
+      borrow.BorrowedAmountWads,
+      marketValue,
+      oracleToken.MintAddress,
+      oracleToken.Symbol,
+		})
+	}
+
+	if depositedValue.Cmp(new(big.Rat)) != 0 {
+		_utilizationRatio := new(big.Rat)
+		_utilizationRatio = _utilizationRatio.Quo(borrowedValue, depositedValue)
+		_utilizationRatio = _utilizationRatio.Mul(_utilizationRatio, big.NewRat(100, 1))
+		utilizationRatio, _ = _utilizationRatio.Float64()
 	}
 
 	return RefreshedObligation {
@@ -76,27 +140,66 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 	}, nil
 }
 
+func getBorrrowedAmountWadsWithInterest(
+	reserveCumulativeBorrowRateWads *big.Rat,
+  obligationCumulativeBorrowRateWads *big.Rat,
+  obligationBorrowAmountWads *big.Rat,
+) *big.Rat {
+  switch (reserveCumulativeBorrowRateWads.Cmp(obligationCumulativeBorrowRateWads)) {
+    case -1: {
+      // less than
+      fmt.Printf(
+				`Interest rate cannot be negative.
+        reserveCumulativeBorrowRateWadsNum: %s |
+        obligationCumulativeBorrowRateWadsNum: %s`,
+				reserveCumulativeBorrowRateWads.String(),
+				obligationCumulativeBorrowRateWads.String(),
+			);
+      return obligationBorrowAmountWads;
+    }
+    case 0: {
+      // do nothing when equal
+      return obligationBorrowAmountWads;
+    }
+    case 1: {
+      // greater than
+      compoundInterestRate := new(big.Rat).Quo(reserveCumulativeBorrowRateWads, obligationCumulativeBorrowRateWads)
+      return compoundInterestRate.Mul(obligationBorrowAmountWads, compoundInterestRate)
+    }
+    default: {
+      fmt.Printf(
+				`Error: getBorrrowedAmountWadsWithInterest() identified invalid comparator.
+      	reserveCumulativeBorrowRateWadsNum: %s |
+      	obligationCumulativeBorrowRateWadsNum: %s`,
+				reserveCumulativeBorrowRateWads.String(),
+				obligationCumulativeBorrowRateWads.String(),
+			)
+      return obligationBorrowAmountWads;
+    }
+  }
+}
+
 type RefreshedObligation struct {
-	DepositedValue *big.Int
-	BorrowedValue *big.Int
-	AllowedBorrowValue *big.Int
-	UnhealthyBorrowValue *big.Int
+	DepositedValue *big.Rat
+	BorrowedValue *big.Rat
+	AllowedBorrowValue *big.Rat
+	UnhealthyBorrowValue *big.Rat
 	Deposits []Deposit
 	Borrows []Borrow
-	UtilizationRatio float32
+	UtilizationRatio float64
 }
 
 type Borrow struct {
   BorrowReserve string
-  BorrowAmountWads *big.Int
-  MarketValue *big.Int
+  BorrowAmountWads *big.Rat
+  MarketValue *big.Rat
   MintAddress string
   Symbol string
 };
 
 type Deposit struct {
   DepositReserve string
-  DepositAmount *big.Int
-  MarketValue *big.Int
+  DepositAmount *big.Rat
+  MarketValue *big.Rat
   Symbol string
 };

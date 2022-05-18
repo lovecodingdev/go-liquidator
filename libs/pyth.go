@@ -62,11 +62,14 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config,   o
 		}
   }
 
+
 	Symbol := oracle.Asset
 	ReserveAddress := reserve.Address
 	MintAddress := assetConfig.MintAddress
-	Decimals := big.NewInt(int64(math.Pow(10, float64(assetConfig.Decimals))))
-	Price := big.NewFloat(price)
+	Decimals := big.NewRat(int64(math.Pow(10, float64(assetConfig.Decimals))), 1)
+
+	exponent := int64(100000000)
+	Price := big.NewRat(int64(price * float64(exponent)), exponent)
 
 	oracleToken := OracleToken {
 		Symbol,

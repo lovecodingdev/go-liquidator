@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	// "encoding/hex"
 
-	// . "go-liquidator/global"
+	. "go-liquidator/utils"
 
 	"github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/rpc"
@@ -33,10 +33,10 @@ type Obligation struct {
   LastUpdate LastUpdate
   LendingMarket string
   Owner string
-  DepositedValue *big.Int // decimals
-  BorrowedValue *big.Int // decimals
-  AllowedBorrowValue *big.Int // decimals
-  UnhealthyBorrowValue *big.Int // decimals
+  DepositedValue *big.Rat // decimals
+  BorrowedValue *big.Rat // decimals
+  AllowedBorrowValue *big.Rat // decimals
+  UnhealthyBorrowValue *big.Rat // decimals
   Deposits []ObligationCollateral
   Borrows []ObligationLiquidity
 }
@@ -44,15 +44,15 @@ type Obligation struct {
 type ObligationCollateral struct {
   DepositReserve string //32
   DepositedAmount uint64 //8
-  MarketValue *big.Int // decimals
+  MarketValue *big.Rat // decimals
   _Padding [32]byte
 }
 
 type ObligationLiquidity struct {
   BorrowReserve string
-  CumulativeBorrowRateWads *big.Int // decimals
-  BorrowedAmountWads *big.Int // decimals
-  MarketValue *big.Int // decimals
+  CumulativeBorrowRateWads *big.Rat // decimals
+  BorrowedAmountWads *big.Rat // decimals
+  MarketValue *big.Rat // decimals
   _Padding [32]byte
 }
 
@@ -61,25 +61,14 @@ type ProtoObligation struct {
   LastUpdate LastUpdate
   LendingMarket string
   Owner string
-  DepositedValue *big.Int // decimals
-  BorrowedValue *big.Int // decimals
-  AllowedBorrowValue *big.Int // decimals
-  UnhealthyBorrowValue *big.Int // decimals
+  DepositedValue *big.Rat // decimals
+  BorrowedValue *big.Rat // decimals
+  AllowedBorrowValue *big.Rat // decimals
+  UnhealthyBorrowValue *big.Rat // decimals
   _Padding [64]byte
   DepositsLen uint8
   BorrowsLen uint8
   DataFlat [1096]byte
-}
-
-func reverse(arr []byte) []byte{
-	for i, j := 0, len(arr)-1; i<j; i, j = i+1, j-1 {
-		 arr[i], arr[j] = arr[j], arr[i]
-	}
-	return arr
-}
-
-func bigIntFromBytes(bs []byte) *big.Int{
-  return new(big.Int).SetBytes(reverse(bs))
 }
 
 func ObligationDataDecode(){
@@ -104,16 +93,16 @@ func ObligationDataDecode(){
   po.Owner = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.DepositedValue = bigIntFromBytes(_uint128[:])
+  po.DepositedValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.BorrowedValue = bigIntFromBytes(_uint128[:])
+  po.BorrowedValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.AllowedBorrowValue = bigIntFromBytes(_uint128[:])
+  po.AllowedBorrowValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.UnhealthyBorrowValue = bigIntFromBytes(_uint128[:])
+  po.UnhealthyBorrowValue = BigRatFromBytes(_uint128[:])
 
   buf.Next(64)
 
@@ -133,7 +122,7 @@ func ObligationDataDecode(){
     binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    oc.MarketValue = bigIntFromBytes(_uint128[:])
+    oc.MarketValue = BigRatFromBytes(_uint128[:])
   
     flatBuf.Next(32)
 
@@ -148,13 +137,13 @@ func ObligationDataDecode(){
     ol.BorrowReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+    ol.CumulativeBorrowRateWads = BigRatFromBytes(_uint128[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+    ol.BorrowedAmountWads = BigRatFromBytes(_uint128[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.MarketValue = bigIntFromBytes(_uint128[:])
+    ol.MarketValue = BigRatFromBytes(_uint128[:])
   
     flatBuf.Next(32)
 
@@ -197,16 +186,16 @@ func ObligationParser (pubkey string, info client.AccountInfo) AccountWithObliga
   po.Owner = base58.Encode(_pubkey[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.DepositedValue = bigIntFromBytes(_uint128[:])
+  po.DepositedValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.BorrowedValue = bigIntFromBytes(_uint128[:])
+  po.BorrowedValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.AllowedBorrowValue = bigIntFromBytes(_uint128[:])
+  po.AllowedBorrowValue = BigRatFromBytes(_uint128[:])
 
   binary.Read(buf, binary.LittleEndian, &_uint128)
-  po.UnhealthyBorrowValue = bigIntFromBytes(_uint128[:])
+  po.UnhealthyBorrowValue = BigRatFromBytes(_uint128[:])
 
   buf.Next(64)
 
@@ -230,7 +219,7 @@ func ObligationParser (pubkey string, info client.AccountInfo) AccountWithObliga
     binary.Read(flatBuf, binary.LittleEndian, &oc.DepositedAmount)
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    oc.MarketValue = bigIntFromBytes(_uint128[:])
+    oc.MarketValue = BigRatFromBytes(_uint128[:])
   
     flatBuf.Next(32)
 
@@ -245,13 +234,13 @@ func ObligationParser (pubkey string, info client.AccountInfo) AccountWithObliga
     ol.BorrowReserve = base58.Encode(_pubkey[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.CumulativeBorrowRateWads = bigIntFromBytes(_uint128[:])
+    ol.CumulativeBorrowRateWads = BigRatFromBytes(_uint128[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.BorrowedAmountWads = bigIntFromBytes(_uint128[:])
+    ol.BorrowedAmountWads = BigRatFromBytes(_uint128[:])
 
     binary.Read(flatBuf, binary.LittleEndian, &_uint128)
-    ol.MarketValue = bigIntFromBytes(_uint128[:])
+    ol.MarketValue = BigRatFromBytes(_uint128[:])
   
     flatBuf.Next(32)
 
