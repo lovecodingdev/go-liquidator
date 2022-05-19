@@ -117,7 +117,6 @@ func GetWalletTokenData(c *client.Client, config global.Config, wallet types.Acc
 	}
 
 	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(mintAddress))
-	fmt.Println(userTokenAccount)
 
 	getAccountInfoResponse, err := c.GetAccountInfo(context.TODO(), userTokenAccount.ToBase58())
 	if err != nil {

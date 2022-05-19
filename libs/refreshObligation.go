@@ -140,11 +140,9 @@ func getBorrrowedAmountWadsWithInterest(
 		{
 			// less than
 			fmt.Printf(
-				`Interest rate cannot be negative.
-        reserveCumulativeBorrowRateWadsNum: %s |
-        obligationCumulativeBorrowRateWadsNum: %s`,
-				reserveCumulativeBorrowRateWads.String(),
-				obligationCumulativeBorrowRateWads.String(),
+				"Interest rate cannot be negative.\nreserveCumulativeBorrowRateWadsNum: %s | \nobligationCumulativeBorrowRateWadsNum: %s\n",
+				reserveCumulativeBorrowRateWads.FloatString(2),
+				obligationCumulativeBorrowRateWads.FloatString(2),
 			)
 			return obligationBorrowAmountWads
 		}
@@ -162,11 +160,9 @@ func getBorrrowedAmountWadsWithInterest(
 	default:
 		{
 			fmt.Printf(
-				`Error: getBorrrowedAmountWadsWithInterest() identified invalid comparator.
-      	reserveCumulativeBorrowRateWadsNum: %s |
-      	obligationCumulativeBorrowRateWadsNum: %s`,
-				reserveCumulativeBorrowRateWads.String(),
-				obligationCumulativeBorrowRateWads.String(),
+				"Error: getBorrrowedAmountWadsWithInterest() identified invalid comparator.\nreserveCumulativeBorrowRateWadsNum: %s |\nobligationCumulativeBorrowRateWadsNum: %s\n",
+				reserveCumulativeBorrowRateWads.FloatString(2),
+				obligationCumulativeBorrowRateWads.FloatString(2),
 			)
 			return obligationBorrowAmountWads
 		}

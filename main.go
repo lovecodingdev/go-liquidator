@@ -12,7 +12,6 @@ import (
 	. "go-liquidator/libs"
 	"go-liquidator/libs/actions"
 	. "go-liquidator/models/layouts"
-	"go-liquidator/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
@@ -71,7 +70,7 @@ func main() {
 			for _, obligation := range allObligations {
 				for !cmp.Equal(obligation, (AccountWithObligation{})) {
 					refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
-					fmt.Println(utils.JsonFromObject(refreshed), err)
+					// fmt.Println(utils.JsonFromObject(refreshed), err)
 					if err != nil {
 						break
 					}
@@ -113,13 +112,13 @@ func main() {
 					fmt.Printf(
 						"Obligation %s is underwater\nborrowedValue: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
 						obligation.Pubkey,
-						refreshed.BorrowedValue.String(),
-						refreshed.UnhealthyBorrowValue.String(),
+						refreshed.BorrowedValue.FloatString(2),
+						refreshed.UnhealthyBorrowValue.FloatString(2),
 						market.Address,
 					)
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
-					fmt.Println(utils.JsonFromObject(walletTokenData), err)
+					// fmt.Println(utils.JsonFromObject(walletTokenData), err)
 					if walletTokenData.BalanceBase == 0 {
 						fmt.Printf(
 							"insufficient %s to liquidate obligation %s in market: %s \n",

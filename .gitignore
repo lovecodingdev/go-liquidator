@@ -1,3 +1,4 @@
 keypair*.json
 .env
 production.json
+*.exe
