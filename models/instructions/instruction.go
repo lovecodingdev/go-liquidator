@@ -1,0 +1,24 @@
+package instructions
+
+type LendingInstruction int8
+
+const (
+	InitLendingMarket LendingInstruction = iota
+	SetLendingMarketOwner
+	InitReserve
+	RefreshReserve
+	DepositReserveLiquidity
+	RedeemReserveCollateral
+	InitObligation
+	RefreshObligation
+	DepositObligationCollateral
+	WithdrawObligationCollateral
+	BorrowObligationLiquidity
+	RepayObligationLiquidity
+	LiquidateObligation
+	FlashLoan
+	DepositReserveLiquidityAndObligationCollateral
+	WithdrawObligationCollateralAndRedeemReserveLiquidity
+	UpdateReserveConfig
+	LiquidateObligationAndRedeemReserveCollateral
+)

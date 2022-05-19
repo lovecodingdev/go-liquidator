@@ -144,7 +144,7 @@ func main() {
 						c,
 						config,
 						payer,
-						walletTokenData.BalanceBase,
+						uint64(walletTokenData.BalanceBase),
 						selectedBorrow.Symbol,
 						selectedDeposit.Symbol,
 						market,
