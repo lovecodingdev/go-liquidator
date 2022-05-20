@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
@@ -49,7 +51,7 @@ func main() {
 	fmt.Printf(" app: %s\n clusterUrl: %s\n wallet: %s\n", ENV_APP, clusterUrl, payer.PublicKey.ToBase58())
 
 	ENV_MARKET := os.Getenv("MARKET")
-	for epoch := 0; epoch < 1; epoch++ {
+	for epoch := 0; ; epoch++ {
 		for _, market := range config.Markets {
 			if ENV_MARKET != "" && ENV_MARKET != market.Address {
 				continue
@@ -153,6 +155,12 @@ func main() {
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)
 				}
+			}
+
+			THROTTLE := os.Getenv("THROTTLE")
+			if THROTTLE != "" {
+				_throttle, _ := strconv.Atoi(THROTTLE)
+				time.Sleep(time.Duration(_throttle) * time.Millisecond)
 			}
 		}
 	}
