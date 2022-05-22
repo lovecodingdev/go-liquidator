@@ -13,12 +13,19 @@ import (
 
 	"go-liquidator/global"
 	. "go-liquidator/models/layouts"
+
+	"github.com/samber/lo"
 	// "github.com/portto/solana-go-sdk/client"
 	// "github.com/portto/solana-go-sdk/rpc"
 	// "github.com/portto/solana-go-sdk/common"
 	// "github.com/btcsuite/btcd/btcutil/base58"
 )
 
+const RISKY_OBLIGATION_THRESHOLD = 78
+
+// This function doesn't actually refresh the obligation within the blockchain
+// but does offchain calculation which mimics the actual refreshObligation instruction
+// to optimize of transaction fees.
 func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithReserve, tokensOracle []global.OracleToken) (RefreshedObligation, error) {
 	depositedValue := new(big.Rat)
 	borrowedValue := new(big.Rat)
@@ -31,24 +38,17 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 	//todo: CalculateRefreshedObligation
 
 	for _, deposit := range obligation.Deposits {
-		var oracleToken global.OracleToken
-		for _, token := range tokensOracle {
-			if token.ReserveAddress == deposit.DepositReserve {
-				oracleToken = token
-				break
-			}
-		}
+		oracleToken, _ := lo.Find(tokensOracle, func(token global.OracleToken) bool {
+			return token.ReserveAddress == deposit.DepositReserve
+		})
 		if oracleToken == (global.OracleToken{}) {
 			return RefreshedObligation{}, fmt.Errorf("Missing token info for reserve %s, \nskipping this obligation. \nPlease restart liquidator to fetch latest configs from /v1/config", deposit.DepositReserve)
 		}
 
-		var reserve Reserve
-		for _, r := range reserves {
-			if r.Pubkey == deposit.DepositReserve {
-				reserve = r.Info
-				break
-			}
-		}
+		_reserve, _ := lo.Find(reserves, func(r AccountWithReserve) bool {
+			return r.Pubkey == deposit.DepositReserve
+		})
+		reserve := _reserve.Info
 
 		collateralExchangeRate := GetCollateralExchangeRate(reserve)
 		marketValue := new(big.Rat)
@@ -73,24 +73,17 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 	}
 
 	for _, borrow := range obligation.Borrows {
-		var oracleToken global.OracleToken
-		for _, token := range tokensOracle {
-			if token.ReserveAddress == borrow.BorrowReserve {
-				oracleToken = token
-				break
-			}
-		}
+		oracleToken, _ := lo.Find(tokensOracle, func(token global.OracleToken) bool {
+			return token.ReserveAddress == borrow.BorrowReserve
+		})
 		if oracleToken == (global.OracleToken{}) {
 			return RefreshedObligation{}, fmt.Errorf("Missing token info for reserve %s, \nskipping this obligation. \nPlease restart liquidator to fetch latest configs from /v1/config", borrow.BorrowReserve)
 		}
 
-		var reserve Reserve
-		for _, r := range reserves {
-			if r.Pubkey == borrow.BorrowReserve {
-				reserve = r.Info
-				break
-			}
-		}
+		_reserve, _ := lo.Find(reserves, func(r AccountWithReserve) bool {
+			return r.Pubkey == borrow.BorrowReserve
+		})
+		reserve := _reserve.Info
 
 		borrowAmountWadsWithInterest := getBorrrowedAmountWadsWithInterest(
 			reserve.Liquidity.CumulativeBorrowRateWads,

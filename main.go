@@ -14,6 +14,7 @@ import (
 	. "go-liquidator/libs"
 	"go-liquidator/libs/actions"
 	. "go-liquidator/models/layouts"
+	"go-liquidator/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
@@ -34,7 +35,7 @@ func main() {
 	}
 
 	config := GetConfig()
-	fmt.Printf("config %s\n", config.ProgramID)
+	fmt.Printf("config ProgramID: %s\n", config.ProgramID)
 
 	ENV_APP := os.Getenv("APP")
 	clusterUrl := ENDPOINTS[ENV_APP]
@@ -77,6 +78,7 @@ func main() {
 						break
 					}
 
+					// Do nothing if obligation is healthy
 					_cmp := refreshed.BorrowedValue.Cmp(refreshed.UnhealthyBorrowValue)
 					if _cmp == -1 || _cmp == 0 {
 						break
@@ -120,10 +122,10 @@ func main() {
 					)
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
-					// fmt.Println(utils.JsonFromObject(walletTokenData), err)
+					fmt.Println(utils.JsonFromObject(walletTokenData), err)
 					if walletTokenData.BalanceBase == 0 {
 						fmt.Printf(
-							"insufficient %s to liquidate obligation %s in market: %s \n",
+							"insufficient %s to liquidate obligation %s in market: %s \n\n",
 							selectedBorrow.Symbol,
 							obligation.Pubkey,
 							market.Address,
@@ -131,7 +133,7 @@ func main() {
 						break
 					} else if walletTokenData.BalanceBase < 0 {
 						fmt.Printf(
-							"failed to get wallet balance for %s to liquidate obligation %s in market: %s.\nPotentially network error or token account does not exist in wallet\n",
+							"failed to get wallet balance for %s to liquidate obligation %s in market: %s.\nPotentially network error or token account does not exist in wallet\n\n",
 							selectedBorrow.Symbol,
 							obligation.Pubkey,
 							market.Address,
@@ -154,6 +156,7 @@ func main() {
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)
+					fmt.Printf("\n")
 				}
 			}
 
