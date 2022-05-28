@@ -61,8 +61,8 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 		liquidationThresholdRate := GetLiquidationThresholdRate(reserve)
 
 		depositedValue = depositedValue.Add(depositedValue, marketValue)
-		allowedBorrowValue = allowedBorrowValue.Add(allowedBorrowValue, marketValue.Mul(marketValue, loanToValueRate))
-		unhealthyBorrowValue = unhealthyBorrowValue.Add(unhealthyBorrowValue, marketValue.Mul(marketValue, liquidationThresholdRate))
+		allowedBorrowValue = allowedBorrowValue.Add(allowedBorrowValue, new(big.Rat).Mul(marketValue, loanToValueRate))
+		unhealthyBorrowValue = unhealthyBorrowValue.Add(unhealthyBorrowValue, new(big.Rat).Mul(marketValue, liquidationThresholdRate))
 
 		deposits = append(deposits, Deposit{
 			deposit.DepositReserve,
