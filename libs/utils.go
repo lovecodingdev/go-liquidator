@@ -17,6 +17,7 @@ import (
 	"github.com/portto/solana-go-sdk/program/tokenprog"
 	"github.com/portto/solana-go-sdk/rpc"
 	"github.com/portto/solana-go-sdk/types"
+	"github.com/samber/lo"
 )
 
 // Converts amount to human (rebase with decimals)
@@ -33,13 +34,9 @@ func GetDecimals(config global.Config, symbol string) uint8 {
 
 // Returns token info from config
 func GetTokenInfo(config global.Config, symbol string) global.Asset {
-	var asset global.Asset
-	for _, _asset := range config.Assets {
-		if _asset.Symbol == symbol {
-			asset = _asset
-			break
-		}
-	}
+	asset, _ := lo.Find(config.Assets, func(_asset global.Asset) bool {
+		return _asset.Symbol == symbol
+	})
 	return asset
 }
 

@@ -4,6 +4,7 @@ import (
 	// "fmt"
 	// "sync"
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	// "math"
@@ -13,15 +14,16 @@ import (
 	"go-liquidator/libs"
 	. "go-liquidator/models/instructions"
 	. "go-liquidator/models/layouts"
-
-	"github.com/google/go-cmp/cmp"
+	"go-liquidator/utils"
 
 	// "go-liquidator/utils"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/portto/solana-go-sdk/client"
-	// "github.com/portto/solana-go-sdk/rpc"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/program/assotokenprog"
+	"github.com/portto/solana-go-sdk/rpc"
+
 	"github.com/portto/solana-go-sdk/types"
 	"github.com/samber/lo"
 )
@@ -52,6 +54,7 @@ func LiquidateAndRedeem(
 	uniqReserveAddresses := []string{}
 	uniqReserveAddresses = append(uniqReserveAddresses, depositReserves...)
 	uniqReserveAddresses = append(uniqReserveAddresses, borrowReserves...)
+	uniqReserveAddresses = utils.RemoveDuplicateStr(uniqReserveAddresses)
 
 	for _, reserveAddress := range uniqReserveAddresses {
 		reserveInfo, _ := lo.Find(lendingMarket.Reserves, func(r global.Reserve) bool {
@@ -150,7 +153,7 @@ func LiquidateAndRedeem(
 		payer.PublicKey.ToBase58(),
 	))
 
-	recentBlockhashResponse, err := c.GetRecentBlockhash(context.Background())
+	recent, err := c.GetRecentBlockhash(context.TODO())
 	if err != nil {
 		return fmt.Errorf("get recent block hash error, err: %v\n", err)
 	}
@@ -158,14 +161,42 @@ func LiquidateAndRedeem(
 		Signers: []types.Account{payer},
 		Message: types.NewMessage(types.NewMessageParam{
 			FeePayer:        payer.PublicKey,
-			RecentBlockhash: recentBlockhashResponse.Blockhash,
+			RecentBlockhash: recent.Blockhash,
 			Instructions:    ixs,
 		}),
 	})
-	sig, err := c.SendTransaction(context.Background(), tx)
+
+	sig, err := c.SendTransactionWithConfig(context.TODO(), tx, client.SendTransactionConfig{
+		SkipPreflight:       false,
+		PreflightCommitment: rpc.CommitmentConfirmed,
+	})
+	fmt.Println(sig, err)
+
 	if err != nil {
 		return fmt.Errorf("failed to send tx, err: %v", err)
 	}
-	fmt.Println(sig)
+
 	return nil
+}
+
+func TestLiquidate(
+	c *client.Client,
+	payer types.Account,
+) {
+	rawTx := "Ad4zuw8JOX9KLt0IGq8va40hQXYxkG/tus2Ekpp3LEplpNJgYTr0fZ1sWl3y4Re06Z8YysYdFDYhalu58RQByAIBAA0Z6Xkn+tjqP1sq+H9Q2SnDyrzTgk1KfZxKQn16b3+9cicsyOrxNJY/DlpMLc6ikNpF9llAUIJlXFP08XLmMF0DAy+i8sb1Busg9MHxG78eSRr2AK/4FfA5L85ckYmrWVs+MQCTR3TtKup33ecWjcQBW1q0qoseEVx4yDI+u8tY9ORBnFgt1wFS6gnO1AZ4Jjc7YGOZUcscGTsPGMU2tUtNN0h5L0gP01Mqv3ew77vr0QDiJ2YipzzHUSersr+3PcPBTVfc7BSIeVLXNlgFW5+Pdfhcrqs8tueYQZJHb9zlqXtul0iUCXFwDIz0xUcYRKbyPbqa/fJWwF3bum9ZiuqkHJD6sfSY4fNzPsbvZRUjnRPcS93vyQJm4w1eYWM2rbYAntF0r0JELmchUiZpzVUNFFLmIyaOEqKPSmJnycKql3qzVAcoaB9/XYEzm1mWfUlMy5Xd7nctmzGEAbnmpNqSwLqClYFhQAdhV3to7I3Ht7kdIep2QzcQL52g/+OP2y/qAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjJFu3QlTmWpjMP/SjdEPXn1J+RORJdQrTBFOLAG8hvDOzHsTv+PoomuqMlUwBYy4tdkkIzlRNaGW97xEb/2ErjJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+FmXGDa+TfXc0GI3sx0QDltQKsYzIl7TAmg1hJPMi5GeKKvhWnBfDtO4nEp79MhTmazMc4TX/koRahCZkYlPFD3mu6nN/XmuJp8Db7aXm0uYp3KSexdu9rcZZXaHIfHx8uTqoCDGHMR5cSgTRhzhU4lKlqbACyHtDPwnmNH5qenJSgabi5haq1MqRQkN6FV/zdy+bLfvxzoKZbBvkgNdtz7sBoMQhhqYMn0FUFdNhEGKpuEMM1Ldqn/X9YFSzO6yOIcGp9UXGMd0yShWY5hpHV62i164o5tLbVxzVVshAAAAAAan1RcZLFxRIYzJTD1K8X9Y2u4Im6H9ROPb2YoAAAAABt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKn4Wd+NXaopFYWSXDDUhNWf0Ordek5CpDiBl5SJvHNgVAYUBAUNEBYBAxQECRMRFgEDFAQBFgUJAQcPBwAGAAIMGBcADwcABAAVDBgXABQPCwYECQcFAgoDCAEOEgAYCRHZ4CUAAAAAAA=="
+
+	bytesTx, _ := base64.StdEncoding.DecodeString(rawTx)
+	tx, _ := types.TransactionDeserialize(bytesTx)
+
+	recentBlockhashResponse, err := c.GetRecentBlockhash(context.TODO())
+	tx.Message.RecentBlockHash = recentBlockhashResponse.Blockhash
+	data, err := tx.Message.Serialize()
+	tx.Signatures[0] = payer.Sign(data)
+
+	sig, err := c.SendTransactionWithConfig(context.TODO(), tx, client.SendTransactionConfig{
+		SkipPreflight:       false,
+		PreflightCommitment: rpc.CommitmentConfirmed,
+	})
+
+	fmt.Println(sig, err)
 }

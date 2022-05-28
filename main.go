@@ -51,6 +51,9 @@ func main() {
 	payer, _ := types.AccountFromBytes(keypair)
 	fmt.Printf(" app: %s\n clusterUrl: %s\n wallet: %s\n", ENV_APP, clusterUrl, payer.PublicKey.ToBase58())
 
+	// actions.TestLiquidate(c, payer)
+	// return
+
 	ENV_MARKET := os.Getenv("MARKET")
 	for epoch := 0; ; epoch++ {
 		for _, market := range config.Markets {
@@ -143,7 +146,7 @@ func main() {
 
 					// Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
 					// 50% val of all borrowed assets.
-					actions.LiquidateAndRedeem(
+					err = actions.LiquidateAndRedeem(
 						c,
 						config,
 						payer,
@@ -153,6 +156,10 @@ func main() {
 						market,
 						obligation,
 					)
+					if err != nil {
+						// fmt.Println(err)
+						break
+					}
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)

@@ -77,7 +77,7 @@ func LiquidateObligationAndRedeemReserveCollateralIx(
 		{PubKey: common.PublicKeyFromString(withdrawReserveLiquiditySupply), IsSigner: false, IsWritable: true},
 		{PubKey: common.PublicKeyFromString(withdrawReserveFeeReceiver), IsSigner: false, IsWritable: true},
 		{PubKey: common.PublicKeyFromString(obligation), IsSigner: false, IsWritable: true},
-		{PubKey: common.PublicKeyFromString(lendingMarket), IsSigner: false, IsWritable: true},
+		{PubKey: common.PublicKeyFromString(lendingMarket), IsSigner: false, IsWritable: false},
 		{PubKey: common.PublicKeyFromString(lendingMarketAuthority), IsSigner: false, IsWritable: false},
 		{PubKey: common.PublicKeyFromString(transferAuthority), IsSigner: true, IsWritable: false},
 		{PubKey: common.TokenProgramID, IsSigner: false, IsWritable: false},

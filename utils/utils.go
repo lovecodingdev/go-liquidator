@@ -1,13 +1,13 @@
 package utils
 
 import (
-	"fmt"
-	"encoding/json"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"math/big"
 
-	"github.com/portto/solana-go-sdk/rpc"
 	"github.com/portto/solana-go-sdk/client"
+	"github.com/portto/solana-go-sdk/rpc"
 )
 
 func JsonFromObject(obj any) string {
@@ -40,17 +40,29 @@ func RpcProgramAccountInfoToClientAccountInfo(v rpc.GetProgramAccountsAccount) (
 	}, nil
 }
 
-func Reverse(arr []byte) []byte{
-	for i, j := 0, len(arr)-1; i<j; i, j = i+1, j-1 {
-		 arr[i], arr[j] = arr[j], arr[i]
+func Reverse(arr []byte) []byte {
+	for i, j := 0, len(arr)-1; i < j; i, j = i+1, j-1 {
+		arr[i], arr[j] = arr[j], arr[i]
 	}
 	return arr
 }
 
-func BigIntFromBytes(bs []byte) *big.Int{
-  return new(big.Int).SetBytes(Reverse(bs))
+func BigIntFromBytes(bs []byte) *big.Int {
+	return new(big.Int).SetBytes(Reverse(bs))
 }
 
-func BigRatFromBytes(bs []byte) *big.Rat{
+func BigRatFromBytes(bs []byte) *big.Rat {
 	return new(big.Rat).SetInt(BigIntFromBytes(bs))
+}
+
+func RemoveDuplicateStr(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	list := []string{}
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }
