@@ -54,6 +54,15 @@ func main() {
 	// actions.TestLiquidate(c, payer)
 	// return
 
+	// jupag.Swap(
+	// 	"So11111111111111111111111111111111111111112",
+	// 	"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+	// 	4_000_000_000,
+	// 	payer,
+	// 	c,
+	// )
+	// return
+
 	ENV_MARKET := os.Getenv("MARKET")
 	for epoch := 0; ; epoch++ {
 		for _, market := range config.Markets {
@@ -144,6 +153,14 @@ func main() {
 						break
 					}
 
+					// jupag.Swap(
+					// 	"So11111111111111111111111111111111111111112",
+					// 	selectedBorrow.MintAddress,
+					// 	500_000_000,
+					// 	payer,
+					// 	c,
+					// )
+
 					// Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
 					// 50% val of all borrowed assets.
 					err = actions.LiquidateAndRedeem(
@@ -158,6 +175,7 @@ func main() {
 					)
 					if err != nil {
 						// fmt.Println(err)
+						fmt.Printf("\n")
 						break
 					}
 
