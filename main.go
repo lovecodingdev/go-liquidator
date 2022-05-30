@@ -13,6 +13,7 @@ import (
 	. "go-liquidator/config"
 	. "go-liquidator/libs"
 	"go-liquidator/libs/actions"
+	"go-liquidator/libs/jupag"
 	. "go-liquidator/models/layouts"
 	"go-liquidator/utils"
 
@@ -55,9 +56,9 @@ func main() {
 	// return
 
 	// jupag.Swap(
-	// 	"So11111111111111111111111111111111111111112",
 	// 	"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-	// 	4_000_000_000,
+	// 	"So11111111111111111111111111111111111111112",
+	// 	180_000_000,
 	// 	payer,
 	// 	c,
 	// )
@@ -133,6 +134,9 @@ func main() {
 						market.Address,
 					)
 
+					fmt.Printf("Swaping all SOLs to %s", selectedBorrow.Symbol)
+					jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
+
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
 					fmt.Println(utils.JsonFromObject(walletTokenData), err)
 					if walletTokenData.BalanceBase == 0 {
@@ -153,14 +157,6 @@ func main() {
 						break
 					}
 
-					// jupag.Swap(
-					// 	"So11111111111111111111111111111111111111112",
-					// 	selectedBorrow.MintAddress,
-					// 	500_000_000,
-					// 	payer,
-					// 	c,
-					// )
-
 					// Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
 					// 50% val of all borrowed assets.
 					err = actions.LiquidateAndRedeem(
@@ -175,9 +171,14 @@ func main() {
 					)
 					if err != nil {
 						// fmt.Println(err)
+						fmt.Printf("Swaping all %s(s) to SOL", selectedBorrow.Symbol)
+						jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
 						fmt.Printf("\n")
 						break
 					}
+
+					fmt.Printf("Swaping all %s(s) to SOL", selectedDeposit.Symbol)
+					jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)

@@ -68,6 +68,7 @@ func CalculateRefreshedObligation(obligation Obligation, reserves []AccountWithR
 			deposit.DepositReserve,
 			big.NewRat(int64(deposit.DepositedAmount), 1),
 			marketValue,
+			oracleToken.MintAddress,
 			oracleToken.Symbol,
 		})
 	}
@@ -184,5 +185,6 @@ type Deposit struct {
 	DepositReserve string
 	DepositAmount  *big.Rat
 	MarketValue    *big.Rat
+	MintAddress    string
 	Symbol         string
 }

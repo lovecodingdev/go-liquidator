@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/portto/solana-go-sdk/client"
+	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/rpc"
 	"github.com/portto/solana-go-sdk/types"
 )
@@ -164,4 +165,43 @@ func Swap(
 		}
 	}
 	fmt.Println("swaped")
+}
+
+func SwapAllSolTo(
+	outputMint string,
+	wallet types.Account,
+	c *client.Client,
+) {
+	balance, err := c.GetBalance(context.TODO(), wallet.PublicKey.ToBase58())
+	if err != nil {
+		panic(err)
+	}
+	if balance > 1_000_000_000 {
+		Swap(
+			"So11111111111111111111111111111111111111112",
+			outputMint,
+			balance-1_000_000_000,
+			wallet,
+			c,
+		)
+	}
+}
+
+func SwapSolFrom(
+	inputMint string,
+	wallet types.Account,
+	c *client.Client,
+) {
+	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(inputMint))
+	balance, _, err := c.GetTokenAccountBalance(context.TODO(), userTokenAccount.ToBase58())
+	if err != nil {
+		panic(err)
+	}
+	Swap(
+		inputMint,
+		"So11111111111111111111111111111111111111112",
+		balance,
+		wallet,
+		c,
+	)
 }
