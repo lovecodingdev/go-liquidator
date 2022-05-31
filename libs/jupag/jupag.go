@@ -152,7 +152,7 @@ func Swap(
 		for {
 			sigStatus, err := c.GetSignatureStatus(context.TODO(), sig)
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
 			}
 			if sigStatus == nil {
 				continue
@@ -161,7 +161,7 @@ func Swap(
 			if *sigStatus.ConfirmationStatus == rpc.CommitmentFinalized {
 				break
 			}
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 	fmt.Println("swaped")
