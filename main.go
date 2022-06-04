@@ -39,7 +39,7 @@ func main() {
 	fmt.Printf("config ProgramID: %s\n", config.ProgramID)
 
 	ENV_APP := os.Getenv("APP")
-	clusterUrl := ENDPOINTS[ENV_APP]
+	clusterUrl := os.Getenv("RPC")
 	c := client.NewClient(clusterUrl)
 
 	keypairFile, _ := os.Open("keypair-prod.json")
