@@ -65,6 +65,8 @@ func main() {
 	// return
 
 	ENV_MARKET := os.Getenv("MARKET")
+	ENV_LIQUIDATION_MIN, _ := strconv.Atoi(os.Getenv("LIQUIDATION_MIN"))
+
 	for epoch := 0; ; epoch++ {
 		for _, market := range config.Markets {
 			if ENV_MARKET != "" && ENV_MARKET != market.Address {
@@ -88,6 +90,15 @@ func main() {
 					refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
 					// fmt.Println(utils.JsonFromObject(refreshed), err)
 					if err != nil {
+						break
+					}
+
+					borrowedValue, _ := refreshed.BorrowedValue.Float64()
+					if ENV_LIQUIDATION_MIN > 0 && borrowedValue < float64(ENV_LIQUIDATION_MIN) {
+						fmt.Printf(
+							"Obligation %s is worth less than LIQUIDATION_MIN\n",
+							obligation.Pubkey,
+						)
 						break
 					}
 
