@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"strconv"
 	"time"
@@ -93,8 +94,9 @@ func main() {
 						break
 					}
 
-					borrowedValue, _ := refreshed.BorrowedValue.Float64()
-					if ENV_LIQUIDATION_MIN > 0 && borrowedValue < float64(ENV_LIQUIDATION_MIN) {
+					borrowedValue := new(big.Rat).Quo(refreshed.BorrowedValue, WAD)
+					_borrowedValue, _ := borrowedValue.Float64()
+					if ENV_LIQUIDATION_MIN > 0 && _borrowedValue < float64(ENV_LIQUIDATION_MIN) {
 						fmt.Printf(
 							"Obligation %s is worth less than LIQUIDATION_MIN\n",
 							obligation.Pubkey,
