@@ -96,7 +96,9 @@ func main() {
 
 					borrowedValue := new(big.Rat).Quo(refreshed.BorrowedValue, WAD)
 					_borrowedValue, _ := borrowedValue.Float64()
-					if ENV_LIQUIDATION_MIN > 0 && _borrowedValue < float64(ENV_LIQUIDATION_MIN) {
+					unhealthyBorrowValue := new(big.Rat).Quo(refreshed.UnhealthyBorrowValue, WAD)
+					_unhealthyBorrowValue, _ := unhealthyBorrowValue.Float64()
+					if ENV_LIQUIDATION_MIN > 0 && (_unhealthyBorrowValue < float64(ENV_LIQUIDATION_MIN) || _borrowedValue < float64(ENV_LIQUIDATION_MIN)) {
 						fmt.Printf(
 							"Obligation %s is worth less than LIQUIDATION_MIN\n",
 							obligation.Pubkey,
