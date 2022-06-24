@@ -11,6 +11,7 @@ import (
 
 	. "go-liquidator/global"
 	"go-liquidator/libs/AggregatorState"
+	"go-liquidator/utils"
 
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/samber/lo"
@@ -48,7 +49,15 @@ func getTokenOracleData(wg *sync.WaitGroup, c *client.Client, config Config, ora
 			agg := AggregatorState.DecodeDelimited(result.Data[1:])
 			price = agg.LastRoundResult.Result
 		} else if owner == SWITCHBOARD_V2_ADDRESS {
-
+			buf := bytes.NewReader(result.Data)
+			var _mantissa [16]byte
+			var scale uint32
+			buf.Seek(8+358, 0) //AggregatorAccountData/AggregatorRound/SwitchboardDecimal/
+			binary.Read(buf, binary.LittleEndian, &_mantissa)
+			binary.Read(buf, binary.LittleEndian, &scale)
+			mantissa := utils.BigRatFromBytes(_mantissa[:])
+			decimals := big.NewRat(int64(math.Pow(10, float64(scale))), 1)
+			price, _ = new(big.Rat).Quo(mantissa, decimals).Float64()
 		}
 	}
 
