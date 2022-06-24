@@ -62,7 +62,7 @@ type SwapTransactionReq struct {
 	UserPublicKey string `json:"userPublicKey"`
 }
 
-func GetCoinQuote(inputMint string, outputMint string, amount uint64) CoinQuote {
+func GetCoinQuote(inputMint string, outputMint string, amount uint64) (CoinQuote, error) {
 	coinQuoteURL := fmt.Sprintf(
 		"https://quote-api.jup.ag/v1/quote?inputMint=%s&outputMint=%s&amount=%d&slippage=0.2",
 		inputMint, outputMint, amount,
@@ -71,22 +71,22 @@ func GetCoinQuote(inputMint string, outputMint string, amount uint64) CoinQuote 
 
 	response, err := http.Get(coinQuoteURL)
 	if err != nil {
-		fmt.Print(err.Error())
+		return CoinQuote{}, err
 	}
 	defer response.Body.Close()
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Print(err.Error())
+		return CoinQuote{}, err
 	}
 
 	var responseObject CoinQuote
 	json.Unmarshal(responseData, &responseObject)
 
-	return responseObject
+	return responseObject, nil
 }
 
-func GetSwapTransaction(route Route, userPublicKey string) SwapTransaction {
+func GetSwapTransaction(route Route, userPublicKey string) (SwapTransaction, error) {
 	req := SwapTransactionReq{
 		Route:         route,
 		UserPublicKey: userPublicKey,
@@ -96,19 +96,22 @@ func GetSwapTransaction(route Route, userPublicKey string) SwapTransaction {
 
 	res, err := http.Post("https://quote-api.jup.ag/v1/swap", "application/json", bytes.NewBuffer(body))
 	if err != nil {
-		panic(err)
+		return SwapTransaction{}, err
 	}
 	defer res.Body.Close()
 
 	responseData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Print(err.Error())
+		return SwapTransaction{}, err
 	}
 
 	var responseObject SwapTransaction
-	json.Unmarshal(responseData, &responseObject)
+	err = json.Unmarshal(responseData, &responseObject)
+	if err != nil {
+		return SwapTransaction{}, err
+	}
 
-	return responseObject
+	return responseObject, nil
 }
 
 func Swap(
@@ -117,12 +120,18 @@ func Swap(
 	amount uint64,
 	wallet types.Account,
 	c *client.Client,
-) {
-	coinQuote := GetCoinQuote(inputMint, outputMint, amount)
+) error {
+	coinQuote, err := GetCoinQuote(inputMint, outputMint, amount)
 	// fmt.Println(utils.JsonFromObject(coinQuote))
+	if err != nil {
+		return err
+	}
 
-	transactions := GetSwapTransaction(coinQuote.Data[0], wallet.PublicKey.ToBase58())
+	transactions, err := GetSwapTransaction(coinQuote.Data[0], wallet.PublicKey.ToBase58())
 	// fmt.Println(utils.JsonFromObject(transactions))
+	if err != nil {
+		return err
+	}
 
 	txs := []string{transactions.SetupTransaction, transactions.SwapTransaction, transactions.CleanupTransaction}
 
@@ -145,57 +154,66 @@ func Swap(
 			PreflightCommitment: rpc.CommitmentConfirmed,
 		})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		// fmt.Println(sig, err)
 
 		err = utils.ConfirmTransaction(sig, c)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 	fmt.Println("swaped")
+	return nil
 }
 
 func SwapAllSolTo(
 	outputMint string,
 	wallet types.Account,
 	c *client.Client,
-) {
+) error {
 	balance, err := c.GetBalanceWithConfig(context.TODO(), wallet.PublicKey.ToBase58(), rpc.GetBalanceConfig{
 		Commitment: rpc.CommitmentConfirmed,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if balance > 200_000_000 {
-		Swap(
+		err := Swap(
 			"So11111111111111111111111111111111111111112",
 			outputMint,
 			balance-200_000_000,
 			wallet,
 			c,
 		)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func SwapSolFrom(
 	inputMint string,
 	wallet types.Account,
 	c *client.Client,
-) {
+) error {
 	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(inputMint))
 	balance, _, err := c.GetTokenAccountBalanceWithConfig(context.TODO(), userTokenAccount.ToBase58(), rpc.GetTokenAccountBalanceConfig{
 		Commitment: rpc.CommitmentConfirmed,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
-	Swap(
+	err = Swap(
 		inputMint,
 		"So11111111111111111111111111111111111111112",
 		balance,
 		wallet,
 		c,
 	)
+	if err != nil {
+		return err
+	}
+	return nil
 }

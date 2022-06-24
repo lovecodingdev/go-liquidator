@@ -162,15 +162,20 @@ func main() {
 					}
 
 					fmt.Printf(
-						"Obligation %s is underwater\nborrowedValue: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
+						"Obligation %s is underwater\nborrowedValue: %s\nowner: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
 						obligation.Pubkey,
+						obligation.Account.Owner,
 						refreshed.BorrowedValue.FloatString(2),
 						refreshed.UnhealthyBorrowValue.FloatString(2),
 						market.Address,
 					)
 
 					fmt.Printf("Swaping all SOLs to %s\n", selectedBorrow.Symbol)
-					jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
+					err = jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
+					if err != nil {
+						fmt.Println(err.Error())
+						break
+					}
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
 					fmt.Println(utils.JsonFromObject(walletTokenData), err)
@@ -207,15 +212,27 @@ func main() {
 					if err != nil {
 						fmt.Println(err)
 						fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
-						jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+						err := jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+						if err != nil {
+							fmt.Println(err.Error())
+							break
+						}
 						fmt.Printf("\n")
 						break
 					}
 
 					fmt.Printf("Swaping all %s(s) to SOL\n", selectedDeposit.Symbol)
-					jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
+					err = jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
+					if err != nil {
+						fmt.Println(err.Error())
+						break
+					}
 					fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
-					jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+					err = jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+					if err != nil {
+						fmt.Println(err.Error())
+						break
+					}
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)
