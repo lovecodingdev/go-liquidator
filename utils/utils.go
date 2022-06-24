@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/rpc"
@@ -65,4 +67,25 @@ func RemoveDuplicateStr(strSlice []string) []string {
 		}
 	}
 	return list
+}
+
+func ConfirmTransaction(
+	sig string,
+	c *client.Client,
+) error {
+	maxRetries := 40
+	retries := 0
+	for maxRetries > retries {
+		res, _ := c.GetTransactionWithConfig(context.TODO(), sig, rpc.GetTransactionConfig{
+			Commitment: rpc.CommitmentConfirmed,
+		})
+		if res == nil {
+			retries += 1
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		return nil
+	}
+
+	return fmt.Errorf("max retried")
 }
