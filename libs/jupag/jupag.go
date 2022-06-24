@@ -9,7 +9,6 @@ import (
 	"go-liquidator/utils"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
@@ -68,6 +67,7 @@ func GetCoinQuote(inputMint string, outputMint string, amount uint64) CoinQuote 
 		"https://quote-api.jup.ag/v1/quote?inputMint=%s&outputMint=%s&amount=%d&slippage=0.2",
 		inputMint, outputMint, amount,
 	)
+	// fmt.Println(coinQuoteURL)
 
 	response, err := http.Get(coinQuoteURL)
 	if err != nil {
@@ -122,7 +122,7 @@ func Swap(
 	// fmt.Println(utils.JsonFromObject(coinQuote))
 
 	transactions := GetSwapTransaction(coinQuote.Data[0], wallet.PublicKey.ToBase58())
-	fmt.Println(utils.JsonFromObject(transactions))
+	// fmt.Println(utils.JsonFromObject(transactions))
 
 	txs := []string{transactions.SetupTransaction, transactions.SwapTransaction, transactions.CleanupTransaction}
 
@@ -147,21 +147,11 @@ func Swap(
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(sig, err)
+		// fmt.Println(sig, err)
 
-		for {
-			sigStatus, err := c.GetSignatureStatus(context.TODO(), sig)
-			if err != nil {
-				fmt.Println(err)
-			}
-			if sigStatus == nil {
-				continue
-			}
-			fmt.Println(utils.JsonFromObject(sigStatus), err)
-			if *sigStatus.ConfirmationStatus == rpc.CommitmentFinalized {
-				break
-			}
-			time.Sleep(1000 * time.Millisecond)
+		err = utils.ConfirmTransaction(sig, c)
+		if err != nil {
+			panic(err)
 		}
 	}
 	fmt.Println("swaped")
@@ -172,15 +162,17 @@ func SwapAllSolTo(
 	wallet types.Account,
 	c *client.Client,
 ) {
-	balance, err := c.GetBalance(context.TODO(), wallet.PublicKey.ToBase58())
+	balance, err := c.GetBalanceWithConfig(context.TODO(), wallet.PublicKey.ToBase58(), rpc.GetBalanceConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
 	if err != nil {
 		panic(err)
 	}
-	if balance > 1_000_000_000 {
+	if balance > 200_000_000 {
 		Swap(
 			"So11111111111111111111111111111111111111112",
 			outputMint,
-			balance-1_000_000_000,
+			balance-200_000_000,
 			wallet,
 			c,
 		)
@@ -193,7 +185,9 @@ func SwapSolFrom(
 	c *client.Client,
 ) {
 	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(inputMint))
-	balance, _, err := c.GetTokenAccountBalance(context.TODO(), userTokenAccount.ToBase58())
+	balance, _, err := c.GetTokenAccountBalanceWithConfig(context.TODO(), userTokenAccount.ToBase58(), rpc.GetTokenAccountBalanceConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
 	if err != nil {
 		panic(err)
 	}
