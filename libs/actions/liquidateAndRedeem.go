@@ -165,12 +165,23 @@ func LiquidateAndRedeem(
 			Instructions:    ixs,
 		}),
 	})
+	st, _ := c.SimulateTransactionWithConfig(context.TODO(), tx, client.SimulateTransactionConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
+	if st.Err != nil {
+		return fmt.Errorf("transaction simulate error")
+	}
 
 	sig, err := c.SendTransactionWithConfig(context.TODO(), tx, client.SendTransactionConfig{
 		SkipPreflight:       false,
 		PreflightCommitment: rpc.CommitmentConfirmed,
 	})
 	fmt.Println(sig, err)
+
+	err = utils.ConfirmTransaction(sig, c)
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		return fmt.Errorf("failed to send tx, err: %v", err)
