@@ -21,7 +21,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/portto/solana-go-sdk/client"
 
-	// "github.com/portto/solana-go-sdk/rpc"
 	"github.com/google/go-cmp/cmp"
 	"github.com/portto/solana-go-sdk/types"
 )
@@ -59,7 +58,7 @@ func main() {
 	// jupag.Swap(
 	// 	"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
 	// 	"So11111111111111111111111111111111111111112",
-	// 	180_000_000,
+	// 	7_000_000,
 	// 	payer,
 	// 	c,
 	// )
@@ -86,6 +85,26 @@ func main() {
 			// fmt.Println(utils.JsonFromObject(allReserves))
 			// fmt.Println("\n")
 
+			//test
+			// postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), "5WJtK7sWTYzyKEh7SndzstGQiAW3Sck1u6CAW1Rp548e")
+			// obligation := ObligationParser("5WJtK7sWTYzyKEh7SndzstGQiAW3Sck1u6CAW1Rp548e", postLiquidationObligation)
+			// fmt.Printf("\n")
+			// refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
+			// fmt.Println(utils.JsonFromObject(refreshed), err)
+			// borrowedValue := new(big.Rat).Quo(refreshed.BorrowedValue, WAD)
+			// _borrowedValue, _ := borrowedValue.Float64()
+			// unhealthyBorrowValue := new(big.Rat).Quo(refreshed.UnhealthyBorrowValue, WAD)
+			// _unhealthyBorrowValue, _ := unhealthyBorrowValue.Float64()
+			// fmt.Println(_borrowedValue, _unhealthyBorrowValue)
+			// if ENV_LIQUIDATION_MIN > 0 && (_unhealthyBorrowValue < float64(ENV_LIQUIDATION_MIN) || _borrowedValue < float64(ENV_LIQUIDATION_MIN)) {
+			// 	fmt.Printf(
+			// 		"Obligation %s is worth less than LIQUIDATION_MIN\n",
+			// 		obligation.Pubkey,
+			// 	)
+			// }
+			// return
+			//==================
+
 			for _, obligation := range allObligations {
 				for !cmp.Equal(obligation, (AccountWithObligation{})) {
 					refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
@@ -99,10 +118,11 @@ func main() {
 					unhealthyBorrowValue := new(big.Rat).Quo(refreshed.UnhealthyBorrowValue, WAD)
 					_unhealthyBorrowValue, _ := unhealthyBorrowValue.Float64()
 					if ENV_LIQUIDATION_MIN > 0 && (_unhealthyBorrowValue < float64(ENV_LIQUIDATION_MIN) || _borrowedValue < float64(ENV_LIQUIDATION_MIN)) {
-						fmt.Printf(
-							"Obligation %s is worth less than LIQUIDATION_MIN\n",
-							obligation.Pubkey,
-						)
+						// fmt.Printf(
+						// 	"Obligation %s borrow %f is worth less than LIQUIDATION_MIN\n",
+						// 	obligation.Pubkey,
+						// 	_borrowedValue,
+						// )
 						break
 					}
 
@@ -149,7 +169,7 @@ func main() {
 						market.Address,
 					)
 
-					fmt.Printf("Swaping all SOLs to %s", selectedBorrow.Symbol)
+					fmt.Printf("Swaping all SOLs to %s\n", selectedBorrow.Symbol)
 					jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
@@ -185,15 +205,17 @@ func main() {
 						obligation,
 					)
 					if err != nil {
-						// fmt.Println(err)
-						fmt.Printf("Swaping all %s(s) to SOL", selectedBorrow.Symbol)
+						fmt.Println(err)
+						fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
 						jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
 						fmt.Printf("\n")
 						break
 					}
 
-					fmt.Printf("Swaping all %s(s) to SOL", selectedDeposit.Symbol)
+					fmt.Printf("Swaping all %s(s) to SOL\n", selectedDeposit.Symbol)
 					jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
+					fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
+					jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)
 					obligation = ObligationParser(obligation.Pubkey, postLiquidationObligation)
