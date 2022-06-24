@@ -115,7 +115,9 @@ func GetWalletTokenData(c *client.Client, config global.Config, wallet types.Acc
 
 	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(mintAddress))
 
-	getAccountInfoResponse, err := c.GetAccountInfo(context.TODO(), userTokenAccount.ToBase58())
+	getAccountInfoResponse, err := c.GetAccountInfoWithConfig(context.TODO(), userTokenAccount.ToBase58(), client.GetAccountInfoConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
 	if err != nil {
 		return walletTokenData, fmt.Errorf("failed to get account info, err: %v", err)
 	}
