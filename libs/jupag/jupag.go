@@ -90,7 +90,7 @@ func GetSwapTransaction(route Route, userPublicKey string) (SwapTransaction, err
 	req := SwapTransactionReq{
 		Route:         route,
 		UserPublicKey: userPublicKey,
-		WrapUnwrapSOL: true,
+		WrapUnwrapSOL: false,
 	}
 	body, _ := json.Marshal(req)
 
@@ -208,6 +208,35 @@ func SwapSolFrom(
 	err = Swap(
 		inputMint,
 		"So11111111111111111111111111111111111111112",
+		balance,
+		wallet,
+		c,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SwapMax(
+	inputMint string,
+	outputMint string,
+	wallet types.Account,
+	c *client.Client,
+) error {
+	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(inputMint))
+	balance, _, err := c.GetTokenAccountBalanceWithConfig(context.TODO(), userTokenAccount.ToBase58(), rpc.GetTokenAccountBalanceConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
+	if err != nil {
+		return err
+	}
+	if balance <= 0 {
+		return fmt.Errorf("input balance must be greater than zero")
+	}
+	err = Swap(
+		inputMint,
+		outputMint,
 		balance,
 		wallet,
 		c,
