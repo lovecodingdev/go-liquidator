@@ -86,23 +86,20 @@ func main() {
 			// fmt.Println("\n")
 
 			//test
-			// postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), "5WJtK7sWTYzyKEh7SndzstGQiAW3Sck1u6CAW1Rp548e")
-			// obligation := ObligationParser("5WJtK7sWTYzyKEh7SndzstGQiAW3Sck1u6CAW1Rp548e", postLiquidationObligation)
-			// fmt.Printf("\n")
-			// refreshed, err := CalculateRefreshedObligation(obligation.Info, allReserves, tokensOracle)
-			// fmt.Println(utils.JsonFromObject(refreshed), err)
-			// borrowedValue := new(big.Rat).Quo(refreshed.BorrowedValue, WAD)
-			// _borrowedValue, _ := borrowedValue.Float64()
-			// unhealthyBorrowValue := new(big.Rat).Quo(refreshed.UnhealthyBorrowValue, WAD)
-			// _unhealthyBorrowValue, _ := unhealthyBorrowValue.Float64()
-			// fmt.Println(_borrowedValue, _unhealthyBorrowValue)
-			// if ENV_LIQUIDATION_MIN > 0 && (_unhealthyBorrowValue < float64(ENV_LIQUIDATION_MIN) || _borrowedValue < float64(ENV_LIQUIDATION_MIN)) {
-			// 	fmt.Printf(
-			// 		"Obligation %s is worth less than LIQUIDATION_MIN\n",
-			// 		obligation.Pubkey,
-			// 	)
-			// }
-			// return
+			postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), "7iW66jRgAuK7woSLGpZLQQTd1VQSC5uiafkz4NQoZhPZ")
+			obligation := ObligationParser("7iW66jRgAuK7woSLGpZLQQTd1VQSC5uiafkz4NQoZhPZ", postLiquidationObligation)
+			fmt.Printf("\n")
+			err = actions.Borrow(
+				c,
+				config,
+				payer,
+				11,
+				"USDC",
+				market,
+				obligation,
+			)
+			fmt.Println(err)
+			return
 			//==================
 
 			for _, obligation := range allObligations {
