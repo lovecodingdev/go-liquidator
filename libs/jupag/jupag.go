@@ -246,3 +246,34 @@ func SwapMax(
 	}
 	return nil
 }
+
+func SwapMin(
+	inputMint string,
+	outputMint string,
+	minAmount uint64,
+	wallet types.Account,
+	c *client.Client,
+) error {
+	userTokenAccount, _, _ := common.FindAssociatedTokenAddress(wallet.PublicKey, common.PublicKeyFromString(inputMint))
+	balance, _, err := c.GetTokenAccountBalanceWithConfig(context.TODO(), userTokenAccount.ToBase58(), rpc.GetTokenAccountBalanceConfig{
+		Commitment: rpc.CommitmentConfirmed,
+	})
+	if err != nil {
+		return err
+	}
+	swapBalance := balance - minAmount
+	if swapBalance <= 0 {
+		return fmt.Errorf("swap balance must be greater than zero")
+	}
+	err = Swap(
+		inputMint,
+		outputMint,
+		swapBalance,
+		wallet,
+		c,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}

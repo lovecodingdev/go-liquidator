@@ -179,6 +179,7 @@ func main() {
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
 					fmt.Println(utils.JsonFromObject(walletTokenData), err)
+					depositTokenData, _ := GetWalletTokenData(c, config, payer, selectedDeposit.MintAddress, selectedDeposit.Symbol)
 					if walletTokenData.BalanceBase == 0 {
 						fmt.Printf(
 							"insufficient %s to liquidate obligation %s in market: %s \n\n",
@@ -235,7 +236,11 @@ func main() {
 					// }
 					if selectedDeposit.Symbol != selectedBorrow.Symbol {
 						fmt.Printf("Swaping all %s(s) to %s(s)\n", selectedDeposit.Symbol, selectedBorrow.Symbol)
-						err = jupag.SwapMax(selectedDeposit.MintAddress, selectedBorrow.MintAddress, payer, c)
+						minAmount := depositTokenData.BalanceBase
+						if minAmount < 0 {
+							minAmount = 0
+						}
+						err = jupag.SwapMin(selectedDeposit.MintAddress, selectedBorrow.MintAddress, uint64(minAmount), payer, c)
 						if err != nil {
 							fmt.Println(err.Error())
 							break
