@@ -64,7 +64,7 @@ type SwapTransactionReq struct {
 
 func GetCoinQuote(inputMint string, outputMint string, amount uint64) (CoinQuote, error) {
 	coinQuoteURL := fmt.Sprintf(
-		"https://quote-api.jup.ag/v1/quote?inputMint=%s&outputMint=%s&amount=%d&slippage=0.2",
+		"https://quote-api.jup.ag/v1/quote?inputMint=%s&outputMint=%s&amount=%d&slippage=0.5",
 		inputMint, outputMint, amount,
 	)
 	// fmt.Println(coinQuoteURL)

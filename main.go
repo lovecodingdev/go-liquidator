@@ -56,9 +56,9 @@ func main() {
 	// return
 
 	// jupag.Swap(
-	// 	"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
 	// 	"So11111111111111111111111111111111111111112",
-	// 	7_000_000,
+	// 	"7i5KKsX2weiTkry7jA4ZwSuXGhs5eJBEjY8vVxR4pfRx",
+	// 	200_000_000,
 	// 	payer,
 	// 	c,
 	// )
@@ -162,20 +162,20 @@ func main() {
 					}
 
 					fmt.Printf(
-						"Obligation %s is underwater\nborrowedValue: %s\nowner: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
+						"Obligation %s is underwater\nowner: %s\nborrowedValue: %s\nunhealthyBorrowValue: %s\nmarket address: %s\n",
 						obligation.Pubkey,
-						obligation.Account.Owner,
+						obligation.Info.Owner,
 						refreshed.BorrowedValue.FloatString(2),
 						refreshed.UnhealthyBorrowValue.FloatString(2),
 						market.Address,
 					)
 
-					fmt.Printf("Swaping all SOLs to %s\n", selectedBorrow.Symbol)
-					err = jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
-					if err != nil {
-						fmt.Println(err.Error())
-						break
-					}
+					// fmt.Printf("Swaping all SOLs to %s\n", selectedBorrow.Symbol)
+					// err = jupag.SwapAllSolTo(selectedBorrow.MintAddress, payer, c)
+					// if err != nil {
+					// 	fmt.Println(err.Error())
+					// 	break
+					// }
 
 					walletTokenData, err := GetWalletTokenData(c, config, payer, selectedBorrow.MintAddress, selectedBorrow.Symbol)
 					fmt.Println(utils.JsonFromObject(walletTokenData), err)
@@ -211,27 +211,35 @@ func main() {
 					)
 					if err != nil {
 						fmt.Println(err)
-						fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
-						err := jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+						// fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
+						// err := jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+						// if err != nil {
+						// 	fmt.Println(err.Error())
+						// 	break
+						// }
+						// fmt.Printf("\n")
+						break
+					}
+
+					// fmt.Printf("Swaping all %s(s) to SOL\n", selectedDeposit.Symbol)
+					// err = jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
+					// if err != nil {
+					// 	fmt.Println(err.Error())
+					// 	break
+					// }
+					// fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
+					// err = jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
+					// if err != nil {
+					// 	fmt.Println(err.Error())
+					// 	break
+					// }
+					if selectedDeposit.Symbol != selectedBorrow.Symbol {
+						fmt.Printf("Swaping all %s(s) to %s(s)\n", selectedDeposit.Symbol, selectedBorrow.Symbol)
+						err = jupag.SwapMax(selectedDeposit.MintAddress, selectedBorrow.MintAddress, payer, c)
 						if err != nil {
 							fmt.Println(err.Error())
 							break
 						}
-						fmt.Printf("\n")
-						break
-					}
-
-					fmt.Printf("Swaping all %s(s) to SOL\n", selectedDeposit.Symbol)
-					err = jupag.SwapSolFrom(selectedDeposit.MintAddress, payer, c)
-					if err != nil {
-						fmt.Println(err.Error())
-						break
-					}
-					fmt.Printf("Swaping all %s(s) to SOL\n", selectedBorrow.Symbol)
-					err = jupag.SwapSolFrom(selectedBorrow.MintAddress, payer, c)
-					if err != nil {
-						fmt.Println(err.Error())
-						break
 					}
 
 					postLiquidationObligation, _ := c.GetAccountInfo(context.TODO(), obligation.Pubkey)

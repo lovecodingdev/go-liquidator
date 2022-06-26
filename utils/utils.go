@@ -73,6 +73,7 @@ func ConfirmTransaction(
 	sig string,
 	c *client.Client,
 ) error {
+	fmt.Println("Confirming transaction: ", sig)
 	maxRetries := 40
 	retries := 0
 	for maxRetries > retries {
